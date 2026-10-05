@@ -6,7 +6,7 @@ import '../providers/cart_provider.dart';
 import '../screens/checkout_screen.dart';
 import '../utils/money.dart';
 
-/// Warenkorb mit Positionsliste, Pfandrückgabe und Gesamtsumme.
+/// Warenkorb mit Positionsliste und Gesamtsumme.
 class CartPanel extends StatelessWidget {
   const CartPanel({super.key});
 
@@ -49,8 +49,6 @@ class CartPanel extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const DepositReturnButton(),
-              const SizedBox(height: 8),
               Row(
                 children: [
                   Text('Summe', style: theme.textTheme.titleLarge),
@@ -72,20 +70,6 @@ class CartPanel extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class DepositReturnButton extends StatelessWidget {
-  const DepositReturnButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
-      icon: const Icon(Icons.recycling),
-      label: const Text('Pfandrückgabe'),
-      onPressed: context.read<CartProvider>().addDepositReturn,
     );
   }
 }
@@ -121,7 +105,7 @@ class _CartItemTile extends StatelessWidget {
   }
 }
 
-/// Leiste für Smartphones: Live-Summe, Pfandrückgabe und Weg zur Kasse.
+/// Leiste für Smartphones: Live-Summe und Weg zur Kasse.
 class CartSummaryBar extends StatelessWidget {
   const CartSummaryBar({super.key});
 
@@ -164,21 +148,16 @@ class CartSummaryBar extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Expanded(child: DepositReturnButton()),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                      icon: const Icon(Icons.point_of_sale),
-                      label: const Text('Kasse'),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()),
-                      ),
-                    ),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                  icon: const Icon(Icons.point_of_sale),
+                  label: const Text('Kasse'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()),
                   ),
-                ],
+                ),
               ),
             ],
           ),

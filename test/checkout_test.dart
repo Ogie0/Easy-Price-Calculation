@@ -99,6 +99,8 @@ void main() {
     setScreen(tester, const Size(1024, 768));
     await tester.pumpWidget(const KassenRoot());
 
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pfandrückgabe'));
     await tester.tap(find.text('Pfandrückgabe'));
     await tester.pump();
@@ -112,6 +114,10 @@ void main() {
       await tester.pumpWidget(const KassenRoot());
 
       await tester.tap(find.text('Bratwurst'));
+      await tester.tap(find.text('Getränke'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Pfandrückgabe'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Pfandrückgabe'));
       await tester.pump();
       expect(textOf(tester, 'cart-total'), '1,00 €');
