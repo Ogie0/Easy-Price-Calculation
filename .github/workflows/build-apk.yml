@@ -27,10 +27,45 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+
+      # Fester Schlüssel aus den Secrets, damit sich die App per Update
+      # installieren lässt. Ohne Secrets gibt es einen Wegwerf-Schlüssel.
+      - name: Signaturschlüssel einrichten
+        id: signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          KEYSTORE="$RUNNER_TEMP/upload-keystore.p12"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+            echo "permanent=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Kein Signaturschlüssel hinterlegt (Secrets ANDROID_KEYSTORE_BASE64 und ANDROID_KEYSTORE_PASSWORD). Die APK bekommt einen Wegwerf-Schlüssel und lässt sich nicht über eine bestehende Installation aktualisieren."
+            KEYSTORE_PASSWORD="$(openssl rand -hex 16)"
+            keytool -genkeypair -keystore "$KEYSTORE" -storetype PKCS12 \
+              -storepass "$KEYSTORE_PASSWORD" -alias upload \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Wegwerf-Schluessel"
+            echo "permanent=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat > android/key.properties <<EOF
+          storeFile=$KEYSTORE
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=upload
+          keyPassword=$KEYSTORE_PASSWORD
+          EOF
+
       - run: flutter build apk --release
 
       - name: APK umbenennen
         run: cp build/app/outputs/flutter-apk/app-release.apk JGC-Preisrechner.apk
+
+      - name: Signatur prüfen
+        id: signature
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
+          "$APKSIGNER" verify --print-certs JGC-Preisrechner.apk | tee signature.txt
+          echo "sha256=$(grep -m1 'SHA-256 digest' signature.txt | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -42,10 +77,20 @@ jobs:
       - name: Release "apk-latest" aktualisieren
         env:
           GH_TOKEN: ${{ github.token }}
+          PERMANENT: ${{ steps.signing.outputs.permanent }}
+          FINGERPRINT: ${{ steps.signature.outputs.sha256 }}
         run: |
+          if [ "$PERMANENT" = "true" ]; then
+            SIGNING="Signiert mit dem festen Schlüssel: Updates über die bestehende Installation funktionieren."
+          else
+            SIGNING="⚠️ Ohne festen Schlüssel signiert: Diese APK lässt sich nicht über eine bestehende Installation aktualisieren."
+          fi
           gh release delete apk-latest --cleanup-tag --yes || true
           gh release create apk-latest JGC-Preisrechner.apk \
             --target "$GITHUB_SHA" \
             --prerelease \
             --title "JGC Preisrechner (neueste APK)" \
-            --notes "Automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren."
+            --notes "Automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren.
+
+          ${SIGNING}
+          Zertifikat (SHA-256): ${FINGERPRINT}"
