@@ -1,6 +1,6 @@
-# JGC Preisrechner
+# JGC Ellierode
 
-Offline-Kassen-App für Vereinsfeste (Flutter, Android). Speisen und Getränke
+Offline-Kassen-App des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android). Speisen und Getränke
 per Kachel buchen, automatische Pfandposten, Pfandrückgabe, Rückgeldrechner
 mit Ziffernblock. Preise und Pfandwert lassen sich in den Einstellungen
 ändern und bleiben auf dem Gerät gespeichert. Es werden keine Umsätze
@@ -9,7 +9,7 @@ protokolliert, die App braucht kein Internet.
 ## APK installieren
 
 Jeder Push baut über GitHub Actions eine neue APK. Die neueste liegt unter
-**Releases → „JGC Preisrechner …“** (`JGC-Preisrechner.apk`) und kann direkt
+**Releases → „JGC Ellierode …“** (`JGC-Ellierode.apk`) und kann direkt
 auf dem Smartphone heruntergeladen und installiert werden.
 
 ## Entwicklung

@@ -84,19 +84,19 @@ jobs:
             --build-name="${{ steps.version.outputs.name }}" \
             --build-number="$GITHUB_RUN_NUMBER" \
             --dart-define=APP_VERSION="${{ steps.version.outputs.label }}"
-          cp build/app/outputs/flutter-apk/app-release.apk JGC-Preisrechner.apk
+          cp build/app/outputs/flutter-apk/app-release.apk JGC-Ellierode.apk
 
       - name: Signatur prüfen
         id: signature
         run: |
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
-          "$APKSIGNER" verify --print-certs JGC-Preisrechner.apk | tee signature.txt
+          "$APKSIGNER" verify --print-certs JGC-Ellierode.apk | tee signature.txt
           echo "sha256=$(grep -m1 'SHA-256 digest' signature.txt | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: JGC-Preisrechner-apk
-          path: JGC-Preisrechner.apk
+          name: JGC-Ellierode-apk
+          path: JGC-Ellierode.apk
 
   # Stellt die neueste APK unter "Releases" bereit, damit sie direkt auf dem
   # Smartphone heruntergeladen werden kann.
@@ -108,7 +108,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: JGC-Preisrechner-apk
+          name: JGC-Ellierode-apk
 
       - name: Release "apk-latest" aktualisieren
         env:
@@ -124,10 +124,10 @@ jobs:
             SIGNING="⚠️ Ohne festen Schlüssel signiert: Diese APK lässt sich nicht über eine bestehende Installation aktualisieren."
           fi
           gh release delete apk-latest --cleanup-tag --yes || true
-          gh release create apk-latest JGC-Preisrechner.apk \
+          gh release create apk-latest JGC-Ellierode.apk \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "JGC Preisrechner $VERSION" \
+            --title "JGC Ellierode $VERSION" \
             --notes "Version $VERSION, automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren.
 
           ${SIGNING}

@@ -17,3 +17,7 @@ int? parseCents(String input) {
   if (value == null || value.isNaN || value.isInfinite) return null;
   return (value * 100).round();
 }
+
+/// Betrag für ein Eingabefeld, z. B. 250 → "2,50".
+String centsToInput(int cents) =>
+    '${cents ~/ 100},${(cents % 100).toString().padLeft(2, '0')}';

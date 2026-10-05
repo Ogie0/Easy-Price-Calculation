@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="JGC Preisrechner"
+        android:label="JGC Ellierode"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

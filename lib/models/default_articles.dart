@@ -33,6 +33,13 @@ const List<Article> kDefaultArticles = [
     priceCents: 600,
     hasDeposit: true,
   ),
+  Article(
+    id: 'bier',
+    name: 'Bier',
+    category: ArticleCategory.drink,
+    priceCents: 300,
+    hasDeposit: true,
+  ),
   Article(id: 'sekt', name: 'Sekt', category: ArticleCategory.drink, priceCents: 300),
   Article(id: 'shot', name: 'Shot', category: ArticleCategory.drink, priceCents: 200),
 ];

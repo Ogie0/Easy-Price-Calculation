@@ -57,7 +57,7 @@ class GridFit {
   const GridFit(this.columns, this.aspectRatio);
 
   /// Unterhalb dieser Kantenlänge wird gescrollt statt weiter verkleinert.
-  static const double minTileExtent = 110;
+  static const double minTileExtent = 90;
 
   /// Wählt die Spaltenzahl, bei der die Kacheln am größten werden und
   /// trotzdem alle in [size] passen. Würden sie dabei zu klein, gibt es

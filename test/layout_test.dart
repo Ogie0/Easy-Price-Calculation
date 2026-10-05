@@ -84,7 +84,7 @@ void main() {
     expect(tabBar.right, lessThanOrEqualTo(cart.left));
   });
 
-  const drinks = ['Wasser', 'Softdrink', 'Longdrink', 'Sekt', 'Shot', 'Pfandrückgabe'];
+  const drinks = ['Wasser', 'Softdrink', 'Longdrink', 'Bier', 'Sekt', 'Shot', 'Pfandrückgabe'];
 
   for (final size in const [Size(1024, 768), Size(1280, 800)]) {
     testWidgets('Tablet ${size.width.toInt()}: alle Getränke ohne Scrollen sichtbar',
@@ -141,5 +141,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('App schließen?'), findsNothing);
     expect(find.text('Bratwurst'), findsOneWidget);
+  });
+
+  testWidgets('Einstellungen: ausblenden und eigene Position anlegen', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    expect(find.text('Krakauer'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Einstellungen'));
+    await tester.pumpAndSettle();
+
+    // Krakauer ausblenden (erster „Anzeigen“-Chip nach Bratwurst/Currywurst).
+    final krakauer = find.ancestor(of: find.text('Krakauer'), matching: find.byType(Column)).first;
+    await tester.tap(find.descendant(of: krakauer, matching: find.text('Anzeigen')));
+    await tester.pump();
+
+    await tester.tap(find.text('Position hinzufügen'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('custom-name')), 'Kuchen');
+    await tester.enterText(
+      find.descendant(of: find.byKey(const ValueKey('custom-price')), matching: find.byType(TextField)),
+      '1,5',
+    );
+    await tester.tap(find.text('Hinzufügen'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+    expect(find.text('Krakauer'), findsNothing);
+    expect(find.text('Kuchen'), findsOneWidget);
+    expect(find.text('1,50 €'), findsOneWidget);
   });
 }

@@ -1,0 +1,46 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/article.dart';
+
+/// Speichert Sortiment (Preise, Sichtbarkeit, Pfand, eigene Positionen) und
+/// Pfandwert lokal auf dem Gerät, damit alles einen Neustart übersteht.
+class CatalogStorage {
+  static const _articlesKey = 'articles_v2';
+  static const _depositKey = 'deposit_cents';
+
+  /// Ältere Versionen haben nur die Preise einzeln gespeichert.
+  static const _legacyPricePrefix = 'price_cents_';
+
+  final SharedPreferences _prefs;
+
+  CatalogStorage(this._prefs);
+
+  static Future<CatalogStorage> open() async =>
+      CatalogStorage(await SharedPreferences.getInstance());
+
+  int? loadDeposit() => _prefs.getInt(_depositKey);
+
+  /// Gespeichertes Sortiment oder null, wenn noch nichts gespeichert wurde
+  /// (oder die Daten unlesbar sind).
+  List<Article>? loadArticles() {
+    final raw = _prefs.getString(_articlesKey);
+    if (raw == null) return null;
+    try {
+      return [
+        for (final entry in jsonDecode(raw) as List<Object?>)
+          Article.fromJson((entry! as Map).cast<String, Object?>()),
+      ];
+    } on Object {
+      return null;
+    }
+  }
+
+  int? loadLegacyPrice(String articleId) => _prefs.getInt('$_legacyPricePrefix$articleId');
+
+  Future<void> saveDeposit(int cents) => _prefs.setInt(_depositKey, cents);
+
+  Future<void> saveArticles(List<Article> articles) =>
+      _prefs.setString(_articlesKey, jsonEncode([for (final a in articles) a.toJson()]));
+}

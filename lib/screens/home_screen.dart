@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
+import '../theme.dart';
 import '../utils/layout.dart';
 import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
@@ -64,7 +65,13 @@ class HomeScreen extends StatelessWidget {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('JGC Preisrechner'),
+            title: Row(
+              children: [
+                Image.asset(kClubLogo, height: 40),
+                const SizedBox(width: 12),
+                const Flexible(child: Text('JGC Ellierode', overflow: TextOverflow.ellipsis)),
+              ],
+            ),
             actions: [
               IconButton(
                 tooltip: 'Einstellungen',
@@ -84,7 +91,7 @@ class HomeScreen extends StatelessWidget {
                       flex: 5,
                       child: Column(
                         children: [
-                          _tabBar,
+                          const Material(color: kClubGreen, child: _tabBar),
                           Expanded(child: tabView),
                         ],
                       ),

@@ -116,7 +116,7 @@ class _ChangeDisplay extends StatelessWidget {
 
     final (label, background, foreground) = switch (status.state) {
       PaymentState.awaitingCash => ('Rückgeld', scheme.surfaceContainerHighest, scheme.onSurfaceVariant),
-      PaymentState.change => ('Rückgeld', Colors.green.shade700, Colors.white),
+      PaymentState.change => ('Rückgeld', scheme.primary, scheme.onPrimary),
       PaymentState.missing => ('Es fehlen', scheme.errorContainer, scheme.onErrorContainer),
       PaymentState.payout => ('Auszahlung', Colors.orange.shade700, Colors.white),
     };

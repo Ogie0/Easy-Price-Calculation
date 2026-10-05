@@ -12,6 +12,7 @@ const Map<String, String> _articleEmoji = {
   'wasser': '💧',
   'softdrink': '🥤',
   'longdrink': '🍹',
+  'bier': '🍺',
   'sekt': '🥂',
   'shot': '🥃',
 };
@@ -19,4 +20,5 @@ const Map<String, String> _articleEmoji = {
 const String kDepositEmoji = '♻️';
 
 String emojiFor(Article article) =>
+    article.emoji ??
     _articleEmoji[article.id] ?? (article.category == ArticleCategory.food ? '🍽️' : '🥤');

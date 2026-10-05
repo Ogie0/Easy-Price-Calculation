@@ -6,18 +6,19 @@ import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/checkout_provider.dart';
 import 'screens/home_screen.dart';
-import 'services/price_storage.dart';
+import 'services/catalog_storage.dart';
+import 'theme.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final storage = await PriceStorage.open();
+  final storage = await CatalogStorage.open();
   runApp(KassenRoot(storage: storage));
 }
 
 /// Stellt alle Provider bereit und startet die App.
 class KassenRoot extends StatelessWidget {
-  final PriceStorage? storage;
+  final CatalogStorage? storage;
 
   const KassenRoot({super.key, this.storage});
 
@@ -44,16 +45,13 @@ class KassenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JGC Preisrechner',
+      title: 'JGC Ellierode',
       debugShowCheckedModeBanner: false,
       // Deutsche System-Texte (z. B. „Zurück“, „Einfügen“).
       locale: const Locale('de'),
       supportedLocales: const [Locale('de')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.green,
-        useMaterial3: true,
-      ),
+      theme: clubTheme,
       builder: (context, child) => OrientationLock(child: child!),
       home: const HomeScreen(),
     );
