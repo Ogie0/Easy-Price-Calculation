@@ -11,6 +11,7 @@ import '../utils/layout.dart';
 import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/checkout_panel.dart';
+import '../widgets/club_logo.dart';
 import '../widgets/password_dialog.dart';
 import '../widgets/quantity_bar.dart';
 import 'faq_screen.dart';
@@ -26,32 +27,9 @@ class HomeScreen extends StatelessWidget {
     ],
   );
 
-  /// Fragt nach, bevor die App mit gefülltem Warenkorb geschlossen wird.
-  Future<void> _confirmClose(BuildContext context) async {
-    final close = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('App schließen?'),
-        content: const Text('Im Warenkorb liegen noch Artikel. Sie gehen beim Schließen verloren.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Schließen'),
-          ),
-        ],
-      ),
-    );
-    if (close ?? false) await SystemNavigator.pop();
-  }
-
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogProvider>();
-    final cartIsEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
     final tablet = isTablet(context);
 
     final tabView = TabBarView(
@@ -65,18 +43,14 @@ class HomeScreen extends StatelessWidget {
       ],
     );
 
-    return PopScope(
-      canPop: cartIsEmpty,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_confirmClose(context));
-      },
+    return _CloseGuard(
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
           appBar: AppBar(
             title: Row(
               children: [
-                Image.asset(kClubLogo, height: 40),
+                const ClubLogo(height: 40),
                 const SizedBox(width: 12),
                 // Langer Name: lieber etwas kleiner als abgeschnitten.
                 const Flexible(
@@ -142,6 +116,49 @@ class HomeScreen extends StatelessWidget {
           bottomNavigationBar: tablet ? null : const CartSummaryBar(),
         ),
       ),
+    );
+  }
+}
+
+/// Fragt nach, bevor die App mit gefülltem Warenkorb geschlossen wird. Hört
+/// selbst auf den Warenkorb, damit nicht bei jedem ersten Tipp und jedem
+/// Abschluss der ganze Bildschirm neu gebaut wird.
+class _CloseGuard extends StatelessWidget {
+  final Widget child;
+
+  const _CloseGuard({required this.child});
+
+  /// Schließt die App erst nach Bestätigung.
+  Future<void> _confirmClose(BuildContext context) async {
+    final close = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('App schließen?'),
+        content: const Text('Im Warenkorb liegen noch Artikel. Sie gehen beim Schließen verloren.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Schließen'),
+          ),
+        ],
+      ),
+    );
+    if (close ?? false) await SystemNavigator.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cartIsEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
+    return PopScope(
+      canPop: cartIsEmpty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_confirmClose(context));
+      },
+      child: child,
     );
   }
 }

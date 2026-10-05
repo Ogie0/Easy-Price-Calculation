@@ -25,44 +25,48 @@ class CartPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
+    final lines = cart.lines;
     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showHeader) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-            child: Row(
-              children: [
-                Expanded(child: Text('Warenkorb', style: theme.textTheme.titleLarge)),
-                const ClearCartButton(),
-              ],
+    // Eigene Zeichenebene: Änderungen im Warenkorb zeichnen nicht den ganzen
+    // Bildschirm neu.
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showHeader) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Warenkorb', style: theme.textTheme.titleLarge)),
+                  const ClearCartButton(),
+                ],
+              ),
             ),
+            const Divider(height: 1),
+          ],
+          Expanded(
+            child: cart.isEmpty
+                ? const Center(child: Text('Noch keine Artikel'))
+                : ListView.builder(
+                    itemCount: lines.length,
+                    itemBuilder: (context, index) => _CartLineTile(line: lines[index]),
+                  ),
           ),
-          const Divider(height: 1),
-        ],
-        Expanded(
-          child: cart.isEmpty
-              ? const Center(child: Text('Noch keine Artikel'))
-              : ListView(
-                  children: [
-                    for (final line in cart.lines) _CartLineTile(line: line),
-                  ],
-                ),
-        ),
-        if (showTotal) ...[
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: AmountRow(
-              label: 'Summe',
-              amount: formatCents(cart.totalCents),
-              amountKey: const ValueKey('cart-total'),
+          if (showTotal) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: AmountRow(
+                label: 'Summe',
+                amount: formatCents(cart.totalCents),
+                amountKey: const ValueKey('cart-total'),
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -134,56 +138,71 @@ class CartSummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
+    final totalCents = context.select<CartProvider, int>((c) => c.totalCents);
+    final count = context.select<CartProvider, int>((c) => c.soldCount);
     final theme = Theme.of(context);
-    final count = cart.soldCount;
 
-    return Material(
-      color: theme.colorScheme.secondaryContainer,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Badge(
-                    isLabelVisible: count > 0,
-                    label: Text('$count'),
-                    child: const Icon(Icons.shopping_cart),
-                  ),
-                  const SizedBox(width: 16),
-                  Text('Summe', style: theme.textTheme.titleMedium),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FittedBox(
-                      alignment: Alignment.centerRight,
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        formatCents(cart.totalCents),
-                        key: const ValueKey('cart-total'),
-                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+    // Eigene Zeichenebene: Ein Tipp auf eine Kachel zeichnet nur die Leiste
+    // neu, nicht den ganzen Bildschirm.
+    return RepaintBoundary(
+      child: Material(
+        color: theme.colorScheme.secondaryContainer,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Badge(
+                      isLabelVisible: count > 0,
+                      label: Text('$count'),
+                      child: const Icon(Icons.shopping_cart),
+                    ),
+                    const SizedBox(width: 16),
+                    Text('Summe', style: theme.textTheme.titleMedium),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FittedBox(
+                        alignment: Alignment.centerRight,
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatCents(totalCents),
+                          key: const ValueKey('cart-total'),
+                          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                  icon: const Icon(Icons.point_of_sale),
-                  label: const Text('Kasse'),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()),
-                  ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                const _CheckoutButton(),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Öffnet den Kassierbildschirm. Eigenes Widget, damit es bei jedem Tipp
+/// nicht mit neu gebaut wird.
+class _CheckoutButton extends StatelessWidget {
+  const _CheckoutButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        icon: const Icon(Icons.point_of_sale),
+        label: const Text('Kasse'),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()),
         ),
       ),
     );

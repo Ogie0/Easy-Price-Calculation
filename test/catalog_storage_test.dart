@@ -92,7 +92,7 @@ void main() {
       hasDeposit: false,
       emoji: '',
     );
-    var waffel = catalog.articleById(kuchen.id);
+    final waffel = catalog.articleById(kuchen.id);
     expect((waffel.name, waffel.priceCents, waffel.emoji), ('Waffel', 200, null));
 
     // Kategorie wechseln: landet hinten bei den Getränken.

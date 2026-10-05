@@ -230,6 +230,27 @@ void main() {
     }
   }
 
+  testWidgets('Schnelltasten: Passend und fester Betrag', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+    final passend = find.ancestor(of: find.text('Passend'), matching: find.byType(OutlinedButton));
+    expect(tester.widget<OutlinedButton>(passend).onPressed, isNull);
+
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await tester.tap(find.text('Pommes'));
+    await tester.pump();
+    await tester.tap(find.text('Passend'));
+    await tester.pump();
+    expect(textOf(tester, 'given-display'), '8 €');
+    expect(textOf(tester, 'change-display'), '0,00 €');
+
+    await tester.tap(find.text('20 €'));
+    await tester.pump();
+    expect(textOf(tester, 'change-display'), '12,00 €');
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('complete'))).onPressed, isNotNull);
+  });
+
   testWidgets('Warenkorb leeren lässt sich rückgängig machen', (tester) async {
     setScreen(tester, const Size(1280, 800));
     await tester.pumpWidget(const KassenRoot());

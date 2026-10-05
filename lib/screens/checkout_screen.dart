@@ -36,35 +36,42 @@ class CheckoutScreen extends StatelessWidget {
         actions: const [ClearCartButton()],
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final height = constraints.maxHeight;
+        // Fester Rahmen (Relayout-Grenze) und eigene Zeichenebene: Sonst
+        // würde jede kleine Animation darin, z. B. wenn „Abschließen“ aktiv
+        // wird, den ganzen Bildschirm neu anordnen und neu zeichnen.
+        child: SizedBox.expand(
+          child: RepaintBoundary(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final height = constraints.maxHeight;
 
-            if (height < _minCheckoutHeight + _minCartHeight) {
-              // Sehr kleine Displays: Der Kassierbereich füllt den Bildschirm,
-              // der Warenkorb liegt darüber und ist per Scrollen erreichbar.
-              return ListView(
-                reverse: true,
-                children: [
-                  SizedBox(
-                    height: height.clamp(_smallestCheckoutHeight, _minCheckoutHeight),
-                    child: checkout,
-                  ),
-                  const Divider(height: 1),
-                  const SizedBox(height: _minCartHeight, child: cart),
-                ],
-              );
-            }
+                if (height < _minCheckoutHeight + _minCartHeight) {
+                  // Sehr kleine Displays: Der Kassierbereich füllt den Bildschirm,
+                  // der Warenkorb liegt darüber und ist per Scrollen erreichbar.
+                  return ListView(
+                    reverse: true,
+                    children: [
+                      SizedBox(
+                        height: height.clamp(_smallestCheckoutHeight, _minCheckoutHeight),
+                        child: checkout,
+                      ),
+                      const Divider(height: 1),
+                      const SizedBox(height: _minCartHeight, child: cart),
+                    ],
+                  );
+                }
 
-            final checkoutHeight = math.min(_preferredCheckoutHeight, height - _minCartHeight);
-            return Column(
-              children: [
-                const Expanded(child: cart),
-                const Divider(height: 1),
-                SizedBox(height: checkoutHeight, child: checkout),
-              ],
-            );
-          },
+                final checkoutHeight = math.min(_preferredCheckoutHeight, height - _minCartHeight);
+                return Column(
+                  children: [
+                    const Expanded(child: cart),
+                    const Divider(height: 1),
+                    SizedBox(height: checkoutHeight, child: checkout),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

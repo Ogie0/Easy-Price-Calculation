@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../legal_texts.dart';
 import '../theme.dart';
 import '../utils/version.dart';
+import '../widgets/club_logo.dart';
 
 /// Kurze Hilfe für alle, die an der Kasse stehen.
 class FaqScreen extends StatelessWidget {
@@ -151,7 +152,7 @@ class FaqScreen extends StatelessWidget {
                   applicationVersion: kAppVersion,
                   applicationIcon: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: Image.asset(kClubLogo, height: 72),
+                    child: const ClubLogo(height: 72),
                   ),
                 ),
               ),

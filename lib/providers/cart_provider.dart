@@ -12,6 +12,11 @@ class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
   int _nextId = 1;
 
+  // Abgeleitete Werte (Summe, Zähler, Zeilen) werden nur einmal pro Änderung
+  // berechnet: Bei jedem Tipp fragen viele Kacheln und Anzeigen sie ab.
+  _Totals? _totals;
+  List<CartLine>? _lines;
+
   CartProvider(this._catalog);
 
   List<CartItem> get items => UnmodifiableListView(_items);
@@ -20,49 +25,69 @@ class CartProvider extends ChangeNotifier {
   /// zuletzt gebuchte zuerst, Pfand jeweils direkt unter dem zugehörigen
   /// Getränk. Unterschiedliche Preise (z. B. nach einer Preisänderung) bleiben
   /// getrennte Zeilen.
-  List<CartLine> get lines {
+  List<CartLine> get lines => _lines ??= _buildLines();
+
+  List<CartLine> _buildLines() {
     final groups = <String, List<CartItem>>{};
+    final groupOf = <int, String>{};
+    // Pfand je Gruppe, getrennt nach Pfandwert.
+    final deposits = <String, Map<int, List<CartItem>>>{};
     for (final item in _items) {
-      if (item.type == CartItemType.deposit) continue;
+      if (item.type == CartItemType.deposit) {
+        final group = groupOf[item.parentId];
+        if (group != null) ((deposits[group] ??= {})[item.priceCents] ??= []).add(item);
+        continue;
+      }
       final key = '${item.type.name}|${item.articleId ?? item.label}|${item.priceCents}';
       (groups[key] ??= []).add(item);
+      groupOf[item.id] = key;
     }
-    final ordered = groups.values.toList()
-      ..sort((a, b) => b.last.id.compareTo(a.last.id));
+    final ordered = groups.entries.toList()
+      ..sort((a, b) => b.value.last.id.compareTo(a.value.last.id));
 
-    final result = <CartLine>[];
-    for (final group in ordered) {
-      final first = group.first;
-      result.add(CartLine(
-        type: first.type,
-        label: first.label,
-        unitCents: first.priceCents,
-        items: group,
-      ));
-      final ids = {for (final item in group) item.id};
-      final deposits = <int, List<CartItem>>{};
-      for (final d in _items.where((i) => i.type == CartItemType.deposit && ids.contains(i.parentId))) {
-        (deposits[d.priceCents] ??= []).add(d);
-      }
-      for (final entry in deposits.entries) {
-        result.add(CartLine(
-          type: CartItemType.deposit,
-          label: 'Pfand',
-          unitCents: entry.key,
-          items: entry.value,
-        ));
-      }
-    }
-    return result;
+    return List.unmodifiable([
+      for (final MapEntry(:key, value: group) in ordered) ...[
+        CartLine(
+          type: group.first.type,
+          label: group.first.label,
+          unitCents: group.first.priceCents,
+          items: List.unmodifiable(group),
+        ),
+        for (final MapEntry(key: price, value: items) in (deposits[key] ?? const {}).entries)
+          CartLine(
+            type: CartItemType.deposit,
+            label: 'Pfand',
+            unitCents: price,
+            items: List.unmodifiable(items),
+          ),
+      ],
+    ]);
   }
+
+  _Totals get _computed => _totals ??= _Totals.of(_items);
 
   bool get isEmpty => _items.isEmpty;
 
-  int get totalCents => _items.fold(0, (sum, item) => sum + item.priceCents);
+  int get totalCents => _computed.cents;
 
   /// Anzahl verkaufter Einheiten eines Artikels im aktuellen Warenkorb.
-  int countOf(String articleId) =>
-      _items.where((i) => i.type == CartItemType.article && i.articleId == articleId).length;
+  int countOf(String articleId) => _computed.perArticle[articleId] ?? 0;
+
+  /// Anzahl der Pfandrückgaben im Warenkorb.
+  int get depositReturnCount => _computed.depositReturns;
+
+  /// Anzahl frei eingegebener Beträge im Warenkorb.
+  int get freeAmountCount => _computed.freeAmounts;
+
+  /// Verkaufte Einheiten: Artikel und freie Beträge, ohne Pfand und Abzüge.
+  int get soldCount => _computed.sold;
+
+  /// Nach jeder Änderung: Zwischenergebnisse verwerfen und benachrichtigen.
+  void _changed() {
+    _totals = null;
+    _lines = null;
+    notifyListeners();
+  }
 
   /// Legt einen Artikel [quantity]-mal in den Warenkorb. Bei Artikeln mit
   /// Pfand wird je Einheit automatisch eine Pfandposition zum aktuellen
@@ -89,7 +114,7 @@ class CartProvider extends ChangeNotifier {
         ));
       }
     }
-    if (quantity > 0) notifyListeners();
+    if (quantity > 0) _changed();
   }
 
   /// Pfandrückgabe: je Einheit ein Minusbetrag in Höhe des aktuellen Pfandwerts.
@@ -102,7 +127,7 @@ class CartProvider extends ChangeNotifier {
         priceCents: -_catalog.depositCents,
       ));
     }
-    if (quantity > 0) notifyListeners();
+    if (quantity > 0) _changed();
   }
 
   /// Frei eingegebener Betrag (z. B. Spende, Los, Sonderpreis); ein Abzug
@@ -116,26 +141,15 @@ class CartProvider extends ChangeNotifier {
         priceCents: cents,
       ));
     }
-    if (quantity > 0) notifyListeners();
+    if (quantity > 0) _changed();
   }
-
-  /// Anzahl frei eingegebener Beträge im Warenkorb.
-  int get freeAmountCount =>
-      _items.where((i) => i.type == CartItemType.freeAmount).length;
-
-  /// Verkaufte Einheiten: Artikel und freie Beträge, ohne Pfand und Abzüge.
-  int get soldCount => _items
-      .where((i) =>
-          i.type == CartItemType.article ||
-          (i.type == CartItemType.freeAmount && i.priceCents > 0))
-      .length;
 
   /// Storniert eine einzelne Position. Wird ein Getränk storniert, wird das
   /// zugehörige Pfand mit entfernt.
   void removeItem(int itemId) {
     final before = _items.length;
     _items.removeWhere((i) => i.id == itemId || i.parentId == itemId);
-    if (_items.length != before) notifyListeners();
+    if (_items.length != before) _changed();
   }
 
   /// Storniert die zuletzt hinzugefügte Einheit eines Artikels (inkl. Pfand).
@@ -168,7 +182,7 @@ class CartProvider extends ChangeNotifier {
   void clear() {
     if (_items.isEmpty) return;
     _items.clear();
-    notifyListeners();
+    _changed();
   }
 
   /// Legt zuvor entfernte Positionen wieder in den Warenkorb („Rückgängig“).
@@ -178,7 +192,39 @@ class CartProvider extends ChangeNotifier {
   bool restore(List<CartItem> items) {
     if (items.isEmpty || _items.isNotEmpty) return false;
     _items.addAll(items);
-    notifyListeners();
+    _changed();
     return true;
+  }
+}
+
+/// Summe und Zähler des Warenkorbs, in einem Durchlauf berechnet.
+class _Totals {
+  final int cents;
+  final int sold;
+  final int freeAmounts;
+  final int depositReturns;
+  final Map<String, int> perArticle;
+
+  const _Totals(this.cents, this.sold, this.freeAmounts, this.depositReturns, this.perArticle);
+
+  factory _Totals.of(List<CartItem> items) {
+    var cents = 0, sold = 0, freeAmounts = 0, depositReturns = 0;
+    final perArticle = <String, int>{};
+    for (final item in items) {
+      cents += item.priceCents;
+      switch (item.type) {
+        case CartItemType.article:
+          sold++;
+          perArticle.update(item.articleId!, (n) => n + 1, ifAbsent: () => 1);
+        case CartItemType.freeAmount:
+          freeAmounts++;
+          if (item.priceCents > 0) sold++;
+        case CartItemType.depositReturn:
+          depositReturns++;
+        case CartItemType.deposit:
+          break;
+      }
+    }
+    return _Totals(cents, sold, freeAmounts, depositReturns, perArticle);
   }
 }

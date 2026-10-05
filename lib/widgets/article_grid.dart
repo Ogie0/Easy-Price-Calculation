@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
-import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
 import '../providers/quantity_provider.dart';
@@ -127,7 +126,6 @@ class ArticleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = context.select<CartProvider, int>((c) => c.countOf(article.id));
     final depositActive = context.select<CatalogProvider, bool>((c) => c.depositCents > 0);
     return _Tile(
       emoji: emojiFor(article),
@@ -135,7 +133,7 @@ class ArticleTile extends StatelessWidget {
       subtitle: article.hasDeposit && depositActive
           ? '${formatCents(article.priceCents)} + Pfand'
           : formatCents(article.priceCents),
-      count: count,
+      count: (cart) => cart.countOf(article.id),
       onTap: () => context
           .read<CartProvider>()
           .addArticle(article, quantity: context.read<QuantityProvider>().take()),
@@ -149,16 +147,16 @@ class ArticleTile extends StatelessWidget {
 class DepositReturnTile extends StatelessWidget {
   const DepositReturnTile({super.key});
 
+  static int _depositReturns(CartProvider cart) => cart.depositReturnCount;
+
   @override
   Widget build(BuildContext context) {
     final deposit = context.select<CatalogProvider, int>((c) => c.depositCents);
-    final count = context.select<CartProvider, int>(
-        (c) => c.items.where((i) => i.type == CartItemType.depositReturn).length);
     return _Tile(
       emoji: kDepositEmoji,
       title: 'Pfandrückgabe',
       subtitle: formatCents(-deposit),
-      count: count,
+      count: _depositReturns,
       onTap: () => context
           .read<CartProvider>()
           .addDepositReturn(quantity: context.read<QuantityProvider>().take()),
@@ -179,25 +177,31 @@ class FreeAmountTile extends StatelessWidget {
     cart.addFreeAmount(result.label, result.cents, quantity: quantity.take());
   }
 
+  static int _freeAmounts(CartProvider cart) => cart.freeAmountCount;
+
   @override
   Widget build(BuildContext context) {
-    final count = context.select<CartProvider, int>((c) => c.freeAmountCount);
     return _Tile(
       emoji: '💶',
       title: 'Freier Betrag',
       subtitle: 'Betrag eingeben',
-      count: count,
+      count: _freeAmounts,
       onTap: () => _add(context),
       onLongPress: context.read<CartProvider>().removeLastFreeAmount,
     );
   }
 }
 
+/// Kachel mit Bild, Name und Preis. Hört selbst auf den Warenkorb: Die
+/// Kachel wird nur neu gebaut, wenn sie aktiv wird oder nicht mehr aktiv ist,
+/// bei jedem weiteren Tipp nur die Zahl oben rechts.
 class _Tile extends StatelessWidget {
   final String emoji;
   final String title;
   final String subtitle;
-  final int count;
+
+  /// Liest die Menge dieser Kachel aus dem Warenkorb.
+  final int Function(CartProvider cart) count;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -214,7 +218,7 @@ class _Tile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final selected = count > 0;
+    final selected = context.select<CartProvider, bool>((c) => count(c) > 0);
     final foreground = selected ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Material(
@@ -275,21 +279,30 @@ class _Tile extends StatelessWidget {
                 ),
               ),
             ),
-            if (selected)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: scheme.primary,
-                  child: Text(
-                    '$count',
-                    style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
+            if (selected) Positioned(top: 8, right: 8, child: _CountBadge(count: count)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Menge oben rechts auf einer aktiven Kachel.
+class _CountBadge extends StatelessWidget {
+  final int Function(CartProvider cart) count;
+
+  const _CountBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final value = context.select<CartProvider, int>(count);
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: scheme.primary,
+      child: Text(
+        '$value',
+        style: TextStyle(color: scheme.onPrimary, fontWeight: FontWeight.bold),
       ),
     );
   }

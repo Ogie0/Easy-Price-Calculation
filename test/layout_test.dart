@@ -4,6 +4,7 @@ import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/screens/home_screen.dart';
 import 'package:easy_price_calculation/widgets/article_grid.dart';
 import 'package:easy_price_calculation/widgets/cart_panel.dart';
+import 'package:easy_price_calculation/widgets/checkout_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -456,5 +457,29 @@ void main() {
     await tester.tap(find.text('Hell'));
     await tester.pumpAndSettle();
     expect(brightness(), Brightness.light);
+  });
+
+  testWidgets('Tippen baut nur neu, was sich ändert', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    final rebuilt = <Type>{};
+    debugOnRebuildDirtyWidget = (element, _) => rebuilt.add(element.widget.runtimeType);
+    addTearDown(() => debugOnRebuildDirtyWidget = null);
+
+    // Erster Tipp nach leerem Warenkorb, weitere Tipps, Bargeld eintippen.
+    await tester.tap(find.widgetWithText(ArticleTile, 'Steak'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ArticleTile, 'Steak'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('numpad-5')));
+    await tester.pump();
+    debugOnRebuildDirtyWidget = null;
+
+    expect(rebuilt, containsAll([CartPanel]));
+    expect(rebuilt, isNot(contains(HomeScreen)));
+    expect(rebuilt, isNot(contains(ArticleGrid)));
+    expect(rebuilt, isNot(contains(ArticleTile)));
+    expect(rebuilt, isNot(contains(CheckoutPanel)));
+    expect(rebuilt, isNot(contains(Numpad)));
   });
 }

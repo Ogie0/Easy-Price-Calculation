@@ -9,6 +9,8 @@ import 'amount_row.dart';
 import 'undo_snack_bar.dart';
 
 /// Bargeldeingabe per Ziffernblock, große Rückgeldanzeige und Abschluss.
+/// Die einzelnen Teile hören selbst auf Warenkorb und Eingabe, damit pro
+/// Tastendruck nur neu gebaut wird, was sich ändert.
 class CheckoutPanel extends StatelessWidget {
   /// Wird nach dem Abschließen aufgerufen (z. B. um den Screen zu schließen).
   final VoidCallback? onCompleted;
@@ -18,87 +20,78 @@ class CheckoutPanel extends StatelessWidget {
 
   const CheckoutPanel({super.key, this.onCompleted, this.showTotal = false});
 
-  void _complete(BuildContext context, PaymentStatus status) {
-    final cart = context.read<CartProvider>();
-    final checkout = context.read<CheckoutProvider>();
-    final items = List.of(cart.items);
-    final input = checkout.input;
-
-    completeFeedback();
-    cart.clear();
-    checkout.reset();
-
-    final message = switch (status.state) {
-      PaymentState.change when status.cents > 0 =>
-        'Abgeschlossen – Rückgeld ${formatCents(status.cents)}',
-      PaymentState.payout => 'Abgeschlossen – Auszahlung ${formatCents(status.cents)}',
-      _ => 'Abgeschlossen',
-    };
-    showUndoSnackBar(context, message: message, items: items, input: input);
-    onCompleted?.call();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cart = context.watch<CartProvider>();
-    final checkout = context.watch<CheckoutProvider>();
-    final status = PaymentStatus.of(totalCents: cart.totalCents, givenCents: checkout.givenCents);
-    final theme = Theme.of(context);
-
-    // Die Beträge sind ohnehin groß; eine stark vergrößerte Systemschrift
-    // würde nur den Ziffernblock zusammendrücken.
-    return MediaQuery.withClampedTextScaling(
-      maxScaleFactor: 1.2,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showTotal) ...[
-              AmountRow(
-                label: 'Summe',
-                amount: formatCents(cart.totalCents),
-                amountKey: const ValueKey('cart-total'),
-              ),
+    // Eigene Zeichenebene: Eingaben zeichnen nicht den ganzen Bildschirm neu.
+    return RepaintBoundary(
+      // Die Beträge sind ohnehin groß; eine stark vergrößerte Systemschrift
+      // würde nur den Ziffernblock zusammendrücken.
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.2,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showTotal) ...[
+                const _TotalRow(),
+                const SizedBox(height: 8),
+              ],
+              const _GivenRow(),
               const SizedBox(height: 8),
+              const _ChangeDisplay(),
+              const SizedBox(height: 8),
+              const _QuickAmounts(),
+              const SizedBox(height: 8),
+              const Expanded(child: Numpad()),
+              const SizedBox(height: 8),
+              _CompleteButton(onCompleted: onCompleted),
             ],
-            AmountRow(
-              label: 'Gegeben',
-              amount: checkout.input.isEmpty ? formatCents(0) : '${checkout.input} €',
-              amountKey: const ValueKey('given-display'),
-              muted: checkout.input.isEmpty,
-            ),
-            const SizedBox(height: 8),
-            _ChangeDisplay(status: status),
-            const SizedBox(height: 8),
-            _QuickAmounts(totalCents: cart.totalCents),
-            const SizedBox(height: 8),
-            const Expanded(child: Numpad()),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              key: const ValueKey('complete'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 56),
-                textStyle: theme.textTheme.titleLarge,
-              ),
-              icon: const Icon(Icons.check_circle),
-              label: const Text('Abschließen'),
-              onPressed: !cart.isEmpty && status.canComplete ? () => _complete(context, status) : null,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ChangeDisplay extends StatelessWidget {
-  final PaymentStatus status;
-
-  const _ChangeDisplay({required this.status});
+class _TotalRow extends StatelessWidget {
+  const _TotalRow();
 
   @override
   Widget build(BuildContext context) {
+    final totalCents = context.select<CartProvider, int>((c) => c.totalCents);
+    return AmountRow(
+      label: 'Summe',
+      amount: formatCents(totalCents),
+      amountKey: const ValueKey('cart-total'),
+    );
+  }
+}
+
+class _GivenRow extends StatelessWidget {
+  const _GivenRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final input = context.select<CheckoutProvider, String>((c) => c.input);
+    return AmountRow(
+      label: 'Gegeben',
+      amount: input.isEmpty ? formatCents(0) : '$input €',
+      amountKey: const ValueKey('given-display'),
+      muted: input.isEmpty,
+    );
+  }
+}
+
+class _ChangeDisplay extends StatelessWidget {
+  const _ChangeDisplay();
+
+  @override
+  Widget build(BuildContext context) {
+    final status = PaymentStatus.of(
+      totalCents: context.select<CartProvider, int>((c) => c.totalCents),
+      givenCents: context.select<CheckoutProvider, int?>((c) => c.givenCents),
+    );
     final scheme = Theme.of(context).colorScheme;
 
     final (label, background, foreground) = switch (status.state) {
@@ -120,14 +113,74 @@ class _ChangeDisplay extends StatelessWidget {
   }
 }
 
-class _QuickAmounts extends StatelessWidget {
-  final int totalCents;
+/// „Abschließen“: wird nur neu gebaut, wenn sich ändert, ob abgeschlossen
+/// werden kann.
+class _CompleteButton extends StatelessWidget {
+  final VoidCallback? onCompleted;
 
-  const _QuickAmounts({required this.totalCents});
+  const _CompleteButton({this.onCompleted});
+
+  void _complete(BuildContext context) {
+    final cart = context.read<CartProvider>();
+    final checkout = context.read<CheckoutProvider>();
+    final status = PaymentStatus.of(totalCents: cart.totalCents, givenCents: checkout.givenCents);
+    final items = List.of(cart.items);
+    final input = checkout.input;
+
+    completeFeedback();
+    cart.clear();
+    checkout.reset();
+
+    final message = switch (status.state) {
+      PaymentState.change when status.cents > 0 =>
+        'Abgeschlossen – Rückgeld ${formatCents(status.cents)}',
+      PaymentState.payout => 'Abgeschlossen – Auszahlung ${formatCents(status.cents)}',
+      _ => 'Abgeschlossen',
+    };
+    showUndoSnackBar(context, message: message, items: items, input: input);
+    onCompleted?.call();
+  }
+
+  /// Ob abgeschlossen werden kann, nach aktuellem Warenkorb und Eingabe.
+  static bool _canComplete(CartProvider cart, CheckoutProvider checkout) =>
+      !cart.isEmpty &&
+      PaymentStatus.of(totalCents: cart.totalCents, givenCents: checkout.givenCents).canComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.read<CartProvider>();
+    final checkout = context.read<CheckoutProvider>();
+    // Beide stellen dieselbe Frage: Neu gebaut wird nur, wenn sich die Antwort
+    // ändert, egal ob durch eine Kachel oder eine Taste.
+    final byCart = context.select<CartProvider, bool>((c) => _canComplete(c, checkout));
+    final byInput = context.select<CheckoutProvider, bool>((k) => _canComplete(cart, k));
+    final enabled = byCart && byInput;
+
+    // Der Farbübergang beim Aktivieren zeichnet nur den Button selbst neu.
+    return RepaintBoundary(
+      child: FilledButton.icon(
+        key: const ValueKey('complete'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 56),
+          textStyle: Theme.of(context).textTheme.titleLarge,
+        ),
+        icon: const Icon(Icons.check_circle),
+        label: const Text('Abschließen'),
+        onPressed: enabled ? () => _complete(context) : null,
+      ),
+    );
+  }
+}
+
+/// Schnelltasten „Passend“, 5 €, 10 € … Nur „Passend“ hängt vom Warenkorb
+/// ab, und auch nur davon, ob etwas zu zahlen ist.
+class _QuickAmounts extends StatelessWidget {
+  const _QuickAmounts();
 
   @override
   Widget build(BuildContext context) {
     final checkout = context.read<CheckoutProvider>();
+    final hasTotal = context.select<CartProvider, bool>((c) => c.totalCents > 0);
 
     Widget button(String label, VoidCallback? onPressed) => Expanded(
           child: Padding(
@@ -151,12 +204,17 @@ class _QuickAmounts extends StatelessWidget {
           ),
         );
 
-    return Row(
-      children: [
-        button('Passend', totalCents > 0 ? () => checkout.setAmount(totalCents) : null),
-        for (final euros in const [5, 10, 20, 50])
-          button('$euros €', () => checkout.setAmount(euros * 100)),
-      ],
+    return RepaintBoundary(
+      child: Row(
+        children: [
+          button(
+            'Passend',
+            hasTotal ? () => checkout.setAmount(context.read<CartProvider>().totalCents) : null,
+          ),
+          for (final euros in const [5, 10, 20, 50])
+            button('$euros €', () => checkout.setAmount(euros * 100)),
+        ],
+      ),
     );
   }
 }
@@ -175,22 +233,25 @@ class Numpad extends StatelessWidget {
         action();
       }
 
+      // Jede Taste zeichnet ihre Tipp-Animation für sich.
       return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: tonal
-              ? FilledButton.tonal(
-                  key: ValueKey('numpad-$id'),
-                  style: _style,
-                  onPressed: onPressed,
-                  child: child,
-                )
-              : OutlinedButton(
-                  key: ValueKey('numpad-$id'),
-                  style: _style,
-                  onPressed: onPressed,
-                  child: child,
-                ),
+        child: RepaintBoundary(
+          child: Padding(
+            padding: const EdgeInsets.all(3),
+            child: tonal
+                ? FilledButton.tonal(
+                    key: ValueKey('numpad-$id'),
+                    style: _style,
+                    onPressed: onPressed,
+                    child: child,
+                  )
+                : OutlinedButton(
+                    key: ValueKey('numpad-$id'),
+                    style: _style,
+                    onPressed: onPressed,
+                    child: child,
+                  ),
+          ),
         ),
       );
     }

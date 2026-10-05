@@ -20,6 +20,9 @@ ThemeData _clubTheme(Brightness brightness) {
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
+    // Schlichte Welle statt der Glitzer-Animation (Shader) von Material 3:
+    // kürzer und deutlich sparsamer, die Kasse wird ständig angetippt.
+    splashFactory: InkRipple.splashFactory,
     appBarTheme: AppBarTheme(
       backgroundColor: light ? kClubGreen : scheme.primaryContainer,
       foregroundColor: Colors.white,

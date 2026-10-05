@@ -14,20 +14,23 @@ class QuantityBar extends StatelessWidget {
     final selected = context.select<QuantityProvider, int>((q) => q.quantity);
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      child: Row(
-        children: [
-          Text('Menge', style: theme.textTheme.labelLarge),
-          const SizedBox(width: 8),
-          for (final quantity in QuantityProvider.options)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: _QuantityButton(quantity: quantity, selected: quantity == selected),
+    // Eigene Zeichenebene, damit ein Tipp nicht den ganzen Bildschirm neu zeichnet.
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        child: Row(
+          children: [
+            Text('Menge', style: theme.textTheme.labelLarge),
+            const SizedBox(width: 8),
+            for (final quantity in QuantityProvider.options)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: _QuantityButton(quantity: quantity, selected: quantity == selected),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -46,9 +49,9 @@ class _QuantityButton extends StatelessWidget {
       context.read<QuantityProvider>().select(quantity);
     }
 
-    final style = ButtonStyle(
-      padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-      minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+    const style = ButtonStyle(
+      padding: WidgetStatePropertyAll(EdgeInsets.zero),
+      minimumSize: WidgetStatePropertyAll(Size(0, 40)),
       visualDensity: VisualDensity.compact,
     );
     final label = FittedBox(child: Text('×$quantity', style: const TextStyle(fontWeight: FontWeight.bold)));
