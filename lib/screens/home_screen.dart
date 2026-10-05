@@ -10,6 +10,7 @@ import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/checkout_panel.dart';
 import '../widgets/password_dialog.dart';
+import 'faq_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -74,6 +75,13 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             actions: [
+              IconButton(
+                tooltip: 'Hilfe & FAQ',
+                icon: const Icon(Icons.help_outline),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const FaqScreen()),
+                ),
+              ),
               IconButton(
                 tooltip: 'Einstellungen',
                 icon: const Icon(Icons.settings),

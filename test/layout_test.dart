@@ -199,4 +199,15 @@ void main() {
     await openSettings(tester);
     expect(find.text('Pfandwert'), findsOneWidget);
   });
+
+  testWidgets('FAQ ohne Passwort erreichbar', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+
+    await tester.tap(find.byTooltip('Hilfe & FAQ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Wie funktioniert das Pfand?'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Pfandrückgabe'), findsOneWidget);
+  });
 }
