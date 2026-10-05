@@ -210,4 +210,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Pfandrückgabe'), findsOneWidget);
   });
+
+  testWidgets('FAQ: Impressum, Nutzungsbedingungen und Lizenzen', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.byTooltip('Hilfe & FAQ'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Open-Source-Lizenzen'), 200);
+    await tester.tap(find.text('Impressum'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Junggesellenclub Ellierode v. 1960'), findsOneWidget);
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Nutzungsbedingungen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ohne Gewähr'), findsOneWidget);
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open-Source-Lizenzen'));
+    await tester.pumpAndSettle();
+    expect(find.text('JGC Ellierode'), findsWidgets);
+  });
 }

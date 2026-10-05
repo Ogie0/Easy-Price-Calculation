@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../legal_texts.dart';
+import '../theme.dart';
+import '../utils/version.dart';
+
 /// Kurze Hilfe für alle, die an der Kasse stehen.
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
@@ -61,6 +65,25 @@ class FaqScreen extends StatelessWidget {
     ),
   ];
 
+  void _openText(BuildContext context, String title, String text) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [SelectableText(text.trim())],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,6 +101,40 @@ class FaqScreen extends StatelessWidget {
                   expandedCrossAxisAlignment: CrossAxisAlignment.start,
                   children: [Text(answer)],
                 ),
+              const Divider(height: 32),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Text(
+                  'Rechtliches',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.primary),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Impressum'),
+                onTap: () => _openText(context, 'Impressum', kImpressum),
+              ),
+              ListTile(
+                leading: const Icon(Icons.gavel_outlined),
+                title: const Text('Nutzungsbedingungen'),
+                onTap: () => _openText(context, 'Nutzungsbedingungen', kNutzungsbedingungen),
+              ),
+              ListTile(
+                leading: const Icon(Icons.code),
+                title: const Text('Open-Source-Lizenzen'),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'JGC Ellierode',
+                  applicationVersion: kAppVersion,
+                  applicationIcon: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Image.asset(kClubLogo, height: 72),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
