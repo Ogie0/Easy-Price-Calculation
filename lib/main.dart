@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
+import 'screens/home_screen.dart';
+import 'widgets/orientation_lock.dart';
 
 void main() {
   runApp(
@@ -24,9 +26,15 @@ class KassenApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'Vereinskasse',
-      home: Scaffold(body: Center(child: Text('Vereinskasse'))),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorSchemeSeed: Colors.green,
+        useMaterial3: true,
+      ),
+      builder: (context, child) => OrientationLock(child: child!),
+      home: const HomeScreen(),
     );
   }
 }
