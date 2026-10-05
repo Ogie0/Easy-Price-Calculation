@@ -47,7 +47,7 @@ class CartPanel extends StatelessWidget {
               ? const Center(child: Text('Noch keine Artikel'))
               : ListView(
                   children: [
-                    for (final item in cart.itemsNewestFirst) _CartItemTile(item: item),
+                    for (final line in cart.lines) _CartLineTile(line: line),
                   ],
                 ),
         ),
@@ -92,24 +92,26 @@ class ClearCartButton extends StatelessWidget {
   }
 }
 
-class _CartItemTile extends StatelessWidget {
-  final CartItem item;
+/// Eine (zusammengefasste) Warenkorbzeile, z. B. „6 × Bier“. ⊖ storniert
+/// jeweils eine Einheit.
+class _CartLineTile extends StatelessWidget {
+  final CartLine line;
 
-  const _CartItemTile({required this.item});
+  const _CartLineTile({required this.line});
 
   @override
   Widget build(BuildContext context) {
-    final isDeposit = item.type == CartItemType.deposit;
+    final title = line.quantity > 1 ? '${line.quantity} × ${line.label}' : line.label;
     return ListTile(
       dense: true,
-      contentPadding: EdgeInsets.only(left: isDeposit ? 32 : 16, right: 4),
-      title: Text(item.label),
+      contentPadding: EdgeInsets.only(left: line.isDeposit ? 32 : 16, right: 4),
+      title: Text(title),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(formatCents(item.priceCents)),
+          Text(formatCents(line.totalCents)),
           // Pfand wird zusammen mit dem zugehörigen Getränk storniert.
-          if (isDeposit)
+          if (line.isDeposit)
             const SizedBox(width: 48)
           else
             IconButton(
@@ -117,7 +119,7 @@ class _CartItemTile extends StatelessWidget {
               icon: const Icon(Icons.remove_circle_outline),
               onPressed: () {
                 tapFeedback();
-                context.read<CartProvider>().removeItem(item.id);
+                context.read<CartProvider>().removeOneOf(line);
               },
             ),
         ],
@@ -134,7 +136,7 @@ class CartSummaryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
     final theme = Theme.of(context);
-    final count = cart.items.where((i) => i.type == CartItemType.article).length;
+    final count = cart.soldCount;
 
     return Material(
       color: theme.colorScheme.secondaryContainer,

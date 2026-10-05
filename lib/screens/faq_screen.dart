@@ -15,9 +15,20 @@ class FaqScreen extends StatelessWidget {
           'Langes Drücken auf die Kachel nimmt die zuletzt gebuchte Einheit wieder heraus.',
     ),
     (
+      'Wie buche ich eine Runde?',
+      'Über den Kacheln die Menge wählen (×2 bis ×10) und dann die Kachel antippen, z. B. ×6 und '
+          'Bier. Die Menge gilt nur für diesen einen Tipp, danach wieder einzeln. Nochmal auf die '
+          'gewählte Menge tippen hebt sie auf. Im Warenkorb steht dann „6 × Bier“.',
+    ),
+    (
+      'Wie buche ich etwas, das nicht im Sortiment ist?',
+      'Kachel „Freier Betrag“ antippen, Betrag eingeben und optional eine Bezeichnung wie '
+          '„Spende“ oder „Los“. Mit „Als Abzug“ wird der Betrag abgezogen, z. B. für einen Rabatt.',
+    ),
+    (
       'Wie storniere ich eine einzelne Position?',
-      'Im Warenkorb auf ⊖ neben der Position tippen. Bei Getränken mit Pfand wird das Pfand '
-          'automatisch mit entfernt. Der Mülleimer oben leert den ganzen Warenkorb – auch das '
+      'Im Warenkorb auf ⊖ neben der Position tippen – bei „6 × Bier“ wird jeweils ein Bier '
+          'storniert. Bei Getränken mit Pfand wird das Pfand automatisch mit entfernt. Der Mülleimer oben leert den ganzen Warenkorb – auch das '
           'lässt sich über „Rückgängig“ in der Meldung unten zurückholen.',
     ),
     (
@@ -43,7 +54,8 @@ class FaqScreen extends StatelessWidget {
       'Wie ändere ich Preise oder lege neue Positionen an?',
       'Über das Zahnrad oben rechts. Die Einstellungen sind mit dem Master-Passwort geschützt '
           '(beim Vorstand erfragen). Dort lassen sich Preise und Pfandwert ändern, Artikel ein- '
-          'und ausblenden, Pfand pro Artikel festlegen und eigene Positionen anlegen.',
+          'und ausblenden, Pfand pro Artikel festlegen, die Reihenfolge der Kacheln ändern '
+          '(„Reihenfolge“) und eigene Positionen anlegen, bearbeiten und löschen.',
     ),
     (
       'Werden Umsätze gespeichert?',

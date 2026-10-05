@@ -7,9 +7,11 @@ import '../models/article.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
+import '../providers/quantity_provider.dart';
 import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'article_emoji.dart';
+import 'free_amount_dialog.dart';
 
 /// Kachelraster der Artikel einer Kategorie. Tippen legt den Artikel in den
 /// Warenkorb, langes Drücken storniert die letzte Einheit. Die Kacheln werden
@@ -20,27 +22,28 @@ class ArticleGrid extends StatelessWidget {
   /// Zeigt zusätzlich eine Kachel für die Pfandrückgabe.
   final bool showDepositReturn;
 
-  const ArticleGrid({super.key, required this.articles, this.showDepositReturn = false});
+  /// Zeigt zusätzlich die Kachel „Freier Betrag“.
+  final bool showFreeAmount;
+
+  const ArticleGrid({
+    super.key,
+    required this.articles,
+    this.showDepositReturn = false,
+    this.showFreeAmount = false,
+  });
 
   static const double _padding = 12;
   static const double _spacing = 12;
 
   @override
   Widget build(BuildContext context) {
-    final count = articles.length + (showDepositReturn ? 1 : 0);
-    if (count == 0) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text(
-            'Hier ist gerade nichts sichtbar.\n'
-            'In den Einstellungen lassen sich Artikel über „Anzeigen“ einblenden.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-    return LayoutBuilder(
+    final extras = [
+      if (showDepositReturn) const DepositReturnTile(),
+      if (showFreeAmount) const FreeAmountTile(),
+    ];
+    final count = articles.length + extras.length;
+
+    final grid = LayoutBuilder(
       builder: (context, constraints) {
         final fit = GridFit.of(count, constraints.biggest, padding: _padding, spacing: _spacing);
         return GridView.builder(
@@ -54,9 +57,26 @@ class ArticleGrid extends StatelessWidget {
           itemCount: count,
           itemBuilder: (context, index) => index < articles.length
               ? ArticleTile(article: articles[index])
-              : const DepositReturnTile(),
+              : extras[index - articles.length],
         );
       },
+    );
+    if (articles.isNotEmpty) return grid;
+
+    // Alle Artikel ausgeblendet: Hinweis, Sonderkacheln bleiben erreichbar.
+    const hint = Padding(
+      padding: EdgeInsets.fromLTRB(32, 24, 32, 0),
+      child: Text(
+        'Hier ist gerade nichts sichtbar.\n'
+        'In den Einstellungen lassen sich Artikel über „Anzeigen“ einblenden.',
+        textAlign: TextAlign.center,
+      ),
+    );
+    return Column(
+      children: [
+        hint,
+        if (extras.isNotEmpty) Expanded(child: grid) else const Spacer(),
+      ],
     );
   }
 }
@@ -116,7 +136,9 @@ class ArticleTile extends StatelessWidget {
           ? '${formatCents(article.priceCents)} + Pfand'
           : formatCents(article.priceCents),
       count: count,
-      onTap: () => context.read<CartProvider>().addArticle(article),
+      onTap: () => context
+          .read<CartProvider>()
+          .addArticle(article, quantity: context.read<QuantityProvider>().take()),
       onLongPress: () => context.read<CartProvider>().removeLastOf(article.id),
     );
   }
@@ -137,8 +159,36 @@ class DepositReturnTile extends StatelessWidget {
       title: 'Pfandrückgabe',
       subtitle: formatCents(-deposit),
       count: count,
-      onTap: context.read<CartProvider>().addDepositReturn,
+      onTap: () => context
+          .read<CartProvider>()
+          .addDepositReturn(quantity: context.read<QuantityProvider>().take()),
       onLongPress: context.read<CartProvider>().removeLastDepositReturn,
+    );
+  }
+}
+
+/// Kachel für Beträge außerhalb des Sortiments (Spende, Los, Rabatt …).
+class FreeAmountTile extends StatelessWidget {
+  const FreeAmountTile({super.key});
+
+  Future<void> _add(BuildContext context) async {
+    final cart = context.read<CartProvider>();
+    final quantity = context.read<QuantityProvider>();
+    final result = await askFreeAmount(context);
+    if (result == null) return;
+    cart.addFreeAmount(result.label, result.cents, quantity: quantity.take());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = context.select<CartProvider, int>((c) => c.freeAmountCount);
+    return _Tile(
+      emoji: '💶',
+      title: 'Freier Betrag',
+      subtitle: 'Betrag eingeben',
+      count: count,
+      onTap: () => _add(context),
+      onLongPress: context.read<CartProvider>().removeLastFreeAmount,
     );
   }
 }

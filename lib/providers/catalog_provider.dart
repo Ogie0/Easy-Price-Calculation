@@ -23,8 +23,9 @@ class CatalogProvider extends ChangeNotifier {
         _articles = _load(articles, storage),
         _depositCents = storage?.loadDeposit() ?? depositCents;
 
-  /// Standardsortiment mit gespeicherten Änderungen; neue Standardartikel
-  /// (z. B. nach einem Update) kommen automatisch dazu.
+  /// Gespeichertes Sortiment in gespeicherter Reihenfolge; Standardartikel
+  /// behalten Namen und Emoji aus dem Code, neue Standardartikel (z. B. nach
+  /// einem Update) kommen hinten dazu.
   static List<Article> _load(List<Article> defaults, CatalogStorage? storage) {
     final stored = storage?.loadArticles();
     if (stored == null) {
@@ -33,15 +34,20 @@ class CatalogProvider extends ChangeNotifier {
           a.copyWith(priceCents: storage?.loadLegacyPrice(a.id) ?? a.priceCents),
       ];
     }
-    final byId = {for (final a in stored) a.id: a};
-    return [
-      for (final a in defaults)
-        if (byId[a.id] case final saved?)
-          a.copyWith(priceCents: saved.priceCents, hasDeposit: saved.hasDeposit, visible: saved.visible)
-        else
-          a,
-      ...stored.where((a) => a.custom),
-    ];
+    final defaultsById = {for (final a in defaults) a.id: a};
+    final result = <Article>[];
+    for (final saved in stored) {
+      if (saved.custom) {
+        result.add(saved);
+      } else if (defaultsById.remove(saved.id) case final def?) {
+        result.add(def.copyWith(
+          priceCents: saved.priceCents,
+          hasDeposit: saved.hasDeposit,
+          visible: saved.visible,
+        ));
+      }
+    }
+    return result..addAll(defaultsById.values);
   }
 
   /// Alle Artikel einer Kategorie, auch ausgeblendete (für die Einstellungen).
@@ -99,6 +105,64 @@ class CatalogProvider extends ChangeNotifier {
     _persist();
     notifyListeners();
     return article;
+  }
+
+  /// Ändert eine selbst angelegte Position. Ein leeres [emoji] entfernt das
+  /// eigene Emoji.
+  void updateCustom(
+    String articleId, {
+    required String name,
+    required ArticleCategory category,
+    required int priceCents,
+    required bool hasDeposit,
+    String? emoji,
+  }) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw ArgumentError.value(name, 'name', 'darf nicht leer sein');
+    if (priceCents < 0) {
+      throw ArgumentError.value(priceCents, 'priceCents', 'darf nicht negativ sein');
+    }
+    final index = _articles.indexWhere((a) => a.id == articleId && a.custom);
+    if (index == -1) {
+      throw ArgumentError.value(articleId, 'articleId', 'keine eigene Position');
+    }
+    final cleanEmoji = emoji?.trim() ?? '';
+    final old = _articles[index];
+    final updated = old.copyWith(
+      name: trimmed,
+      category: category,
+      priceCents: priceCents,
+      hasDeposit: hasDeposit,
+      emoji: cleanEmoji.isEmpty ? null : cleanEmoji,
+      clearEmoji: cleanEmoji.isEmpty,
+    );
+    _articles.removeAt(index);
+    if (updated.category == old.category) {
+      _articles.insert(index, updated);
+    } else {
+      // Neue Kategorie: hinten anstellen.
+      _articles.add(updated);
+    }
+    _persist();
+    notifyListeners();
+  }
+
+  /// Verschiebt einen Artikel innerhalb seiner Kategorie (auch ausgeblendete
+  /// zählen mit). [newIndex] ist die Zielposition nach dem Herausnehmen.
+  void moveArticle(ArticleCategory category, int oldIndex, int newIndex) {
+    final ordered = allOf(category);
+    if (oldIndex < 0 || oldIndex >= ordered.length) return;
+    final target = newIndex.clamp(0, ordered.length - 1);
+    if (target == oldIndex) return;
+    ordered.insert(target, ordered.removeAt(oldIndex));
+
+    // Die Plätze der Kategorie in der Gesamtliste neu belegen.
+    var next = 0;
+    for (var i = 0; i < _articles.length; i++) {
+      if (_articles[i].category == category) _articles[i] = ordered[next++];
+    }
+    _persist();
+    notifyListeners();
   }
 
   /// Löscht eine selbst angelegte Position. Standardartikel lassen sich nur

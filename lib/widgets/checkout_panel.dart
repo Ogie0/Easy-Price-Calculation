@@ -143,7 +143,10 @@ class _QuickAmounts extends StatelessWidget {
                       tapFeedback();
                       onPressed();
                     },
-              child: FittedBox(child: Text(label)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: FittedBox(child: Text(label)),
+              ),
             ),
           ),
         );

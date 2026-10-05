@@ -293,15 +293,140 @@ void main() {
     expect(find.text('Ungültiger Betrag'), findsNothing);
     expect(tester.widget<TextField>(bratwurstField).controller!.text, '3,00');
 
-    await tester.scrollUntilVisible(
-      find.text('Löschen'),
-      200,
-      scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
-    );
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('Löschen').hitTestable(), 200, scrollable: settingsList);
     await tester.tap(find.text('Löschen'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
     await tester.pumpAndSettle();
     expect(catalog.food.map((a) => a.name), isNot(contains('Kuchen')));
+  });
+
+  testWidgets('Mengentaste: ×5 bucht eine Runde, danach wieder einzeln', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('quantity-5')));
+    await tester.pump();
+    expect(find.widgetWithText(FilledButton, '×5'), findsOneWidget);
+    await tester.tap(find.text('Bier'));
+    await tester.pump();
+    expect(find.text('5 × Bier'), findsOneWidget);
+    expect(find.text('5 × Pfand'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '×5'), findsNothing, reason: 'gilt nur einmal');
+
+    await tester.tap(find.text('Bier'));
+    await tester.pump();
+    expect(find.text('6 × Bier'), findsOneWidget);
+
+    // Nochmal tippen hebt die Auswahl wieder auf.
+    await tester.tap(find.byKey(const ValueKey('quantity-3')));
+    await tester.tap(find.byKey(const ValueKey('quantity-3')));
+    await tester.pump();
+    await tester.tap(find.text('Sekt'));
+    await tester.pump();
+    expect(find.text('Sekt'), findsNWidgets(2));
+
+    // ⊖ storniert eine Einheit der Runde.
+    final bierLine = find.ancestor(of: find.text('6 × Bier'), matching: find.byType(ListTile));
+    await tester.tap(find.descendant(of: bierLine, matching: find.byTooltip('Stornieren')));
+    await tester.pump();
+    expect(find.text('5 × Bier'), findsOneWidget);
+  });
+
+  testWidgets('Freier Betrag mit Bezeichnung und als Abzug', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+
+    await tester.tap(find.text('Freier Betrag'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hinzufügen'));
+    await tester.pump();
+    expect(find.text('Bitte einen Betrag eingeben'), findsOneWidget);
+
+    await tester.enterText(
+      find.descendant(of: find.byKey(const ValueKey('free-amount')), matching: find.byType(TextField)),
+      '5',
+    );
+    await tester.enterText(find.byKey(const ValueKey('free-label')), 'Spende');
+    await tester.tap(find.text('Hinzufügen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Spende'), findsOneWidget);
+
+    await tester.tap(find.text('Freier Betrag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(of: find.byKey(const ValueKey('free-amount')), matching: find.byType(TextField)),
+      '1',
+    );
+    await tester.tap(find.text('Als Abzug (minus)'));
+    await tester.tap(find.text('Hinzufügen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Abzug'), findsOneWidget);
+    expect(find.text('-1,00 €'), findsOneWidget);
+    expect(find.text('4,00 €'), findsWidgets);
+  });
+
+  testWidgets('Einstellungen: eigene Position bearbeiten', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    final catalog = Provider.of<CatalogProvider>(
+      tester.element(find.byType(Scaffold).first),
+      listen: false,
+    );
+    catalog.addCustom(name: 'Kuchen', category: ArticleCategory.food, priceCents: 150);
+    await openSettings(tester);
+
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('Bearbeiten').hitTestable(), 200, scrollable: settingsList);
+    await tester.tap(find.text('Bearbeiten'));
+    await tester.pumpAndSettle();
+    expect(find.text('Position bearbeiten'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('custom-name')), 'Waffel');
+    await tester.enterText(
+      find.descendant(of: find.byKey(const ValueKey('custom-price')), matching: find.byType(TextField)),
+      '2,5',
+    );
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+
+    final waffelField = find.descendant(
+      of: find.ancestor(of: find.text('Waffel'), matching: find.byType(ListTile)),
+      matching: find.byType(TextField),
+    );
+    expect(tester.widget<TextField>(waffelField).controller!.text, '2,50');
+
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+    expect(find.text('Waffel'), findsOneWidget);
+    expect(find.text('Kuchen'), findsNothing);
+  });
+
+  testWidgets('Reihenfolge per Ziehen ändern', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    final catalog = Provider.of<CatalogProvider>(
+      tester.element(find.byType(Scaffold).first),
+      listen: false,
+    );
+    await openSettings(tester);
+
+    // „Reihenfolge“ bei den Getränken (zweiter Abschnitt).
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    final reorderDrinks = find.byKey(const ValueKey('reorder-drink'));
+    await tester.scrollUntilVisible(reorderDrinks.hitTestable(), 200, scrollable: settingsList);
+    await tester.tap(reorderDrinks);
+    await tester.pumpAndSettle();
+    expect(find.text('Reihenfolge: Getränke'), findsOneWidget);
+
+    final lastBefore = catalog.allOf(ArticleCategory.drink).last.id;
+    await tester.drag(find.byIcon(Icons.drag_handle).last, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(catalog.allOf(ArticleCategory.drink).first.id, lastBefore);
   });
 }

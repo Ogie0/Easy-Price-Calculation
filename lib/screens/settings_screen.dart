@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
@@ -7,16 +6,18 @@ import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
 import '../utils/version.dart';
 import '../widgets/article_emoji.dart';
+import '../widgets/price_field.dart';
+import 'reorder_screen.dart';
 
 /// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
-/// pro Artikel, eigene Positionen anlegen und löschen. Änderungen gelten
-/// sofort und werden gespeichert.
+/// pro Artikel, Reihenfolge der Kacheln, eigene Positionen anlegen,
+/// bearbeiten und löschen. Änderungen gelten sofort und werden gespeichert.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   Future<void> _addCustom(BuildContext context) async {
     final catalog = context.read<CatalogProvider>();
-    final result = await showDialog<_NewArticle>(
+    final result = await showDialog<_ArticleInput>(
       context: context,
       builder: (_) => const _CustomArticleDialog(),
     );
@@ -27,6 +28,12 @@ class SettingsScreen extends StatelessWidget {
       priceCents: result.priceCents,
       hasDeposit: result.hasDeposit,
       emoji: result.emoji,
+    );
+  }
+
+  void _openReorder(BuildContext context, ArticleCategory category) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ReorderScreen(category: category)),
     );
   }
 
@@ -58,10 +65,21 @@ class SettingsScreen extends StatelessWidget {
                   initialCents: catalog.depositCents,
                   onChanged: catalog.setDeposit,
                 ),
-                const _SectionHeader('Speisen'),
-                for (final a in catalog.allOf(ArticleCategory.food)) _ArticleSettings(article: a),
-                const _SectionHeader('Getränke'),
-                for (final a in catalog.allOf(ArticleCategory.drink)) _ArticleSettings(article: a),
+                for (final (category, title) in const [
+                  (ArticleCategory.food, 'Speisen'),
+                  (ArticleCategory.drink, 'Getränke'),
+                ]) ...[
+                  _SectionHeader(
+                    title,
+                    action: TextButton.icon(
+                      key: ValueKey('reorder-${category.name}'),
+                      icon: const Icon(Icons.swap_vert),
+                      label: const Text('Reihenfolge'),
+                      onPressed: () => _openReorder(context, category),
+                    ),
+                  ),
+                  for (final a in catalog.allOf(category)) _ArticleSettings(article: a),
+                ],
                 const Divider(height: 32),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
@@ -79,30 +97,55 @@ class SettingsScreen extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
+  final Widget? action;
 
-  const _SectionHeader(this.title);
+  const _SectionHeader(this.title, {this.action});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context)
-            .textTheme
-            .titleSmall
-            ?.copyWith(color: Theme.of(context).colorScheme.primary),
+      padding: EdgeInsets.fromLTRB(16, action == null ? 16 : 8, 8, action == null ? 4 : 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
+          ?action,
+        ],
       ),
     );
   }
 }
 
 /// Preis plus Schalter „Anzeigen“ und „Pfand“, bei eigenen Positionen
-/// zusätzlich „Löschen“.
+/// zusätzlich „Bearbeiten“ und „Löschen“.
 class _ArticleSettings extends StatelessWidget {
   final Article article;
 
   const _ArticleSettings({required this.article});
+
+  Future<void> _edit(BuildContext context) async {
+    final catalog = context.read<CatalogProvider>();
+    final result = await showDialog<_ArticleInput>(
+      context: context,
+      builder: (_) => _CustomArticleDialog(initial: article),
+    );
+    if (result == null) return;
+    catalog.updateCustom(
+      article.id,
+      name: result.name,
+      category: result.category,
+      priceCents: result.priceCents,
+      hasDeposit: result.hasDeposit,
+      emoji: result.emoji,
+    );
+  }
 
   Future<void> _confirmDelete(BuildContext context) async {
     final catalog = context.read<CatalogProvider>();
@@ -151,12 +194,18 @@ class _ArticleSettings extends StatelessWidget {
                 selected: article.hasDeposit,
                 onSelected: (value) => catalog.setHasDeposit(article.id, value),
               ),
-              if (article.custom)
+              if (article.custom) ...[
+                ActionChip(
+                  avatar: const Icon(Icons.edit_outlined),
+                  label: const Text('Bearbeiten'),
+                  onPressed: () => _edit(context),
+                ),
                 ActionChip(
                   avatar: const Icon(Icons.delete_outline),
                   label: const Text('Löschen'),
                   onPressed: () => _confirmDelete(context),
                 ),
+              ],
             ],
           ),
         ),
@@ -189,13 +238,25 @@ class _PriceRow extends StatefulWidget {
 
 class _PriceRowState extends State<_PriceRow> {
   late final TextEditingController _controller;
-  late int _lastValid = widget.initialCents;
+  late int _lastValid;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _lastValid = widget.initialCents;
     _controller = TextEditingController(text: centsToInput(widget.initialCents));
+  }
+
+  @override
+  void didUpdateWidget(_PriceRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Preis wurde anderswo geändert (z. B. über „Bearbeiten“): Feld anpassen.
+    if (widget.initialCents != _lastValid) {
+      _lastValid = widget.initialCents;
+      _controller.text = centsToInput(widget.initialCents);
+      _error = null;
+    }
   }
 
   @override
@@ -234,7 +295,7 @@ class _PriceRowState extends State<_PriceRow> {
           width: 120,
           child: Focus(
             onFocusChange: _onFocusChange,
-            child: _PriceField(controller: _controller, error: _error, onChanged: _onChanged),
+            child: PriceField(controller: _controller, error: _error, onChanged: _onChanged),
           ),
         ),
       ),
@@ -242,40 +303,7 @@ class _PriceRowState extends State<_PriceRow> {
   }
 }
 
-class _PriceField extends StatelessWidget {
-  final TextEditingController controller;
-  final String? error;
-  final ValueChanged<String>? onChanged;
-  final String? label;
-
-  const _PriceField({super.key, required this.controller, this.error, this.onChanged, this.label});
-
-  static final _allowedInput = RegExp(r'^\d{0,4}([.,]\d{0,2})?$');
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      textAlign: TextAlign.right,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        TextInputFormatter.withFunction(
-          (oldValue, newValue) => _allowedInput.hasMatch(newValue.text) ? newValue : oldValue,
-        ),
-      ],
-      decoration: InputDecoration(
-        labelText: label,
-        suffixText: '€',
-        isDense: true,
-        errorText: error,
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: onChanged,
-    );
-  }
-}
-
-typedef _NewArticle = ({
+typedef _ArticleInput = ({
   String name,
   ArticleCategory category,
   int priceCents,
@@ -283,22 +311,29 @@ typedef _NewArticle = ({
   String? emoji,
 });
 
-/// Dialog für eine frei gestaltete Position.
+/// Dialog für eine frei gestaltete Position: neu anlegen oder – mit
+/// [initial] – bearbeiten.
 class _CustomArticleDialog extends StatefulWidget {
-  const _CustomArticleDialog();
+  final Article? initial;
+
+  const _CustomArticleDialog({this.initial});
 
   @override
   State<_CustomArticleDialog> createState() => _CustomArticleDialogState();
 }
 
 class _CustomArticleDialogState extends State<_CustomArticleDialog> {
-  final _name = TextEditingController();
-  final _price = TextEditingController();
-  final _emoji = TextEditingController();
-  var _category = ArticleCategory.food;
-  var _hasDeposit = false;
+  late final _name = TextEditingController(text: widget.initial?.name);
+  late final _price = TextEditingController(
+    text: widget.initial == null ? null : centsToInput(widget.initial!.priceCents),
+  );
+  late final _emoji = TextEditingController(text: widget.initial?.emoji);
+  late var _category = widget.initial?.category ?? ArticleCategory.food;
+  late var _hasDeposit = widget.initial?.hasDeposit ?? false;
   String? _nameError;
   String? _priceError;
+
+  bool get _editing => widget.initial != null;
 
   @override
   void dispose() {
@@ -316,7 +351,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
       _priceError = cents == null ? 'Bitte einen Preis eingeben' : null;
     });
     if (name.isEmpty || cents == null) return;
-    Navigator.pop<_NewArticle>(context, (
+    Navigator.pop<_ArticleInput>(context, (
       name: name,
       category: _category,
       priceCents: cents,
@@ -328,7 +363,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Neue Position'),
+      title: Text(_editing ? 'Position bearbeiten' : 'Neue Position'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -337,7 +372,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
             TextField(
               key: const ValueKey('custom-name'),
               controller: _name,
-              autofocus: true,
+              autofocus: !_editing,
               maxLength: 24,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
@@ -357,7 +392,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
               onSelectionChanged: (s) => setState(() => _category = s.first),
             ),
             const SizedBox(height: 16),
-            _PriceField(
+            PriceField(
               key: const ValueKey('custom-price'),
               controller: _price,
               label: 'Preis',
@@ -371,6 +406,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
               onChanged: (v) => setState(() => _hasDeposit = v),
             ),
             TextField(
+              key: const ValueKey('custom-emoji'),
               controller: _emoji,
               // Ein Emoji (zählt als ein Zeichen, auch wenn es zusammengesetzt ist).
               maxLength: 1,
@@ -386,7 +422,10 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
-        FilledButton(onPressed: _submit, child: const Text('Hinzufügen')),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(_editing ? 'Speichern' : 'Hinzufügen'),
+        ),
       ],
     );
   }

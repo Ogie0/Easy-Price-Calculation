@@ -40,9 +40,55 @@ void main() {
       ..addArticle(catalog.articleById('softdrink'))
       ..addDepositReturn();
     expect(
-      cart.itemsNewestFirst.map((i) => i.label),
+      cart.lines.map((l) => l.label),
       ['Pfandrückgabe', 'Softdrink', 'Pfand', 'Pommes', 'Wasser', 'Pfand'],
     );
+  });
+
+  test('Gleiche Positionen werden zusammengefasst, Storno einzeln', () {
+    cart
+      ..addArticle(catalog.articleById('bier'), quantity: 6)
+      ..addArticle(catalog.articleById('pommes'))
+      ..addArticle(catalog.articleById('bier'));
+    final lines = cart.lines;
+    expect(
+      lines.map((l) => (l.label, l.quantity, l.totalCents)),
+      [('Bier', 7, 2100), ('Pfand', 7, 1400), ('Pommes', 1, 300)],
+    );
+
+    cart.removeOneOf(lines.first);
+    expect(cart.countOf('bier'), 6);
+    expect(cart.totalCents, 6 * 300 + 6 * 200 + 300);
+
+    // Pfandzeilen lassen sich nicht einzeln stornieren.
+    cart.removeOneOf(cart.lines.firstWhere((l) => l.isDeposit));
+    expect(cart.totalCents, 6 * 300 + 6 * 200 + 300);
+  });
+
+  test('Geänderter Preis ergibt eine eigene Zeile', () {
+    cart.addArticle(catalog.articleById('steak'));
+    catalog.setPrice('steak', 600);
+    cart.addArticle(catalog.articleById('steak'));
+    expect(cart.lines.map((l) => (l.label, l.unitCents)), [('Steak', 600), ('Steak', 500)]);
+  });
+
+  test('Menge, Pfandrückgabe und freier Betrag', () {
+    cart
+      ..addDepositReturn(quantity: 3)
+      ..addFreeAmount('Spende', 500, quantity: 2)
+      ..addFreeAmount('Rabatt', -100);
+    expect(cart.totalCents, -600 + 1000 - 100);
+    expect(cart.freeAmountCount, 3);
+    // Zähler am Warenkorb: nur Verkauftes, keine Rückgaben oder Abzüge.
+    cart.addArticle(catalog.articleById('wasser'));
+    expect(cart.soldCount, 3);
+    cart.removeLastOf('wasser');
+    expect(
+      cart.lines.map((l) => (l.label, l.quantity)),
+      [('Rabatt', 1), ('Spende', 2), ('Pfandrückgabe', 3)],
+    );
+    cart.removeLastFreeAmount();
+    expect(cart.freeAmountCount, 2);
   });
 
   test('Pfandrückgabe nutzt aktuellen Pfandwert', () {

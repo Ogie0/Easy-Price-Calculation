@@ -12,6 +12,7 @@ import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/checkout_panel.dart';
 import '../widgets/password_dialog.dart';
+import '../widgets/quantity_bar.dart';
 import 'faq_screen.dart';
 import 'settings_screen.dart';
 
@@ -55,8 +56,12 @@ class HomeScreen extends StatelessWidget {
 
     final tabView = TabBarView(
       children: [
-        ArticleGrid(articles: catalog.food),
-        ArticleGrid(articles: catalog.drinks, showDepositReturn: catalog.depositCents > 0),
+        ArticleGrid(articles: catalog.food, showFreeAmount: true),
+        ArticleGrid(
+          articles: catalog.drinks,
+          showDepositReturn: catalog.depositCents > 0,
+          showFreeAmount: true,
+        ),
       ],
     );
 
@@ -114,6 +119,7 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         children: [
                           const Material(color: kClubGreen, child: _tabBar),
+                          const QuantityBar(),
                           Expanded(child: tabView),
                         ],
                       ),
@@ -124,7 +130,12 @@ class HomeScreen extends StatelessWidget {
                     const Expanded(flex: 3, child: SafeArea(left: false, child: CheckoutPanel())),
                   ],
                 )
-              : tabView,
+              : Column(
+                  children: [
+                    const QuantityBar(),
+                    Expanded(child: tabView),
+                  ],
+                ),
           bottomNavigationBar: tablet ? null : const CartSummaryBar(),
         ),
       ),

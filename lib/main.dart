@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/checkout_provider.dart';
+import 'providers/quantity_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/catalog_storage.dart';
 import 'theme.dart';
@@ -39,6 +40,7 @@ class KassenRoot extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => CheckoutProvider(cart: context.read<CartProvider>()),
         ),
+        ChangeNotifierProvider(create: (_) => QuantityProvider()),
       ],
       child: const KassenApp(),
     );

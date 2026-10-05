@@ -28,16 +28,25 @@ class Article {
     this.emoji,
   });
 
-  Article copyWith({int? priceCents, bool? hasDeposit, bool? visible}) {
+  /// Kopie mit geänderten Werten. [clearEmoji] entfernt ein eigenes Emoji.
+  Article copyWith({
+    String? name,
+    ArticleCategory? category,
+    int? priceCents,
+    bool? hasDeposit,
+    bool? visible,
+    String? emoji,
+    bool clearEmoji = false,
+  }) {
     return Article(
       id: id,
-      name: name,
-      category: category,
+      name: name ?? this.name,
+      category: category ?? this.category,
       priceCents: priceCents ?? this.priceCents,
       hasDeposit: hasDeposit ?? this.hasDeposit,
       visible: visible ?? this.visible,
       custom: custom,
-      emoji: emoji,
+      emoji: clearEmoji ? null : (emoji ?? this.emoji),
     );
   }
 

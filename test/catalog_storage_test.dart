@@ -1,4 +1,5 @@
 import 'package:easy_price_calculation/models/article.dart';
+import 'package:easy_price_calculation/models/default_articles.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/services/catalog_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,5 +71,78 @@ void main() {
     SharedPreferences.setMockInitialValues({'articles_v2': 'kein json'});
     final fallback = CatalogProvider(storage: await CatalogStorage.open());
     expect(fallback.articleById('bratwurst').priceCents, 300);
+  });
+
+  test('Eigene Position bearbeiten wird gespeichert', () async {
+    SharedPreferences.setMockInitialValues({});
+    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final kuchen = catalog.addCustom(
+      name: 'Kuchen',
+      category: ArticleCategory.food,
+      priceCents: 150,
+      emoji: '🍰',
+    );
+    catalog.updateCustom(
+      kuchen.id,
+      name: 'Waffel',
+      category: ArticleCategory.food,
+      priceCents: 200,
+      hasDeposit: false,
+      emoji: '',
+    );
+    var waffel = catalog.articleById(kuchen.id);
+    expect((waffel.name, waffel.priceCents, waffel.emoji), ('Waffel', 200, null));
+
+    // Kategorie wechseln: landet hinten bei den Getränken.
+    catalog.updateCustom(
+      kuchen.id,
+      name: 'Kakao',
+      category: ArticleCategory.drink,
+      priceCents: 250,
+      hasDeposit: true,
+      emoji: '☕',
+    );
+    expect(catalog.drinks.last.name, 'Kakao');
+    expect(catalog.food.map((a) => a.id), isNot(contains(kuchen.id)));
+
+    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    final kakao = restarted.articleById(kuchen.id);
+    expect((kakao.name, kakao.category, kakao.hasDeposit, kakao.emoji),
+        ('Kakao', ArticleCategory.drink, true, '☕'));
+
+    expect(
+      () => restarted.updateCustom('bier',
+          name: 'X', category: ArticleCategory.drink, priceCents: 1, hasDeposit: false),
+      throwsArgumentError,
+      reason: 'Standardartikel sind nicht umbenennbar',
+    );
+  });
+
+  test('Reihenfolge wird gespeichert, neue Standardartikel kommen hinten dazu', () async {
+    SharedPreferences.setMockInitialValues({});
+    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final drinks = catalog.allOf(ArticleCategory.drink).map((a) => a.id).toList();
+    final bierIndex = drinks.indexOf('bier');
+    catalog
+      ..setVisible('wasser', false)
+      ..moveArticle(ArticleCategory.drink, bierIndex, 0);
+    expect(catalog.allOf(ArticleCategory.drink).first.id, 'bier');
+    expect(catalog.drinks.first.id, 'bier');
+    // Speisen bleiben unverändert.
+    expect(catalog.food.first.id, 'bratwurst');
+
+    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    expect(restarted.allOf(ArticleCategory.drink).first.id, 'bier');
+
+    // Ein neuer Standardartikel (hier: einer, der im Speicher fehlt).
+    final withNew = CatalogProvider(
+      articles: [
+        ...kDefaultArticles,
+        const Article(id: 'radler', name: 'Radler', category: ArticleCategory.drink, priceCents: 300),
+      ],
+      storage: await CatalogStorage.open(),
+    );
+    expect(withNew.allOf(ArticleCategory.drink).first.id, 'bier');
+    expect(withNew.allOf(ArticleCategory.drink).last.id, 'radler');
   });
 }
