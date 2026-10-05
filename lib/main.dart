@@ -4,22 +4,27 @@ import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/checkout_provider.dart';
+import 'providers/price_storage.dart';
 import 'screens/home_screen.dart';
 import 'widgets/orientation_lock.dart';
 
-void main() {
-  runApp(const KassenRoot());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final storage = await PriceStorage.open();
+  runApp(KassenRoot(storage: storage));
 }
 
 /// Stellt alle Provider bereit und startet die App.
 class KassenRoot extends StatelessWidget {
-  const KassenRoot({super.key});
+  final PriceStorage? storage;
+
+  const KassenRoot({super.key, this.storage});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => CatalogProvider()),
+        ChangeNotifierProvider(create: (_) => CatalogProvider(storage: storage)),
         ChangeNotifierProxyProvider<CatalogProvider, CartProvider>(
           create: (context) => CartProvider(context.read<CatalogProvider>()),
           update: (_, catalog, cart) => cart!..updateCatalog(catalog),
@@ -37,7 +42,7 @@ class KassenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Vereinskasse',
+      title: 'JGC Preisrechner',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorSchemeSeed: Colors.green,

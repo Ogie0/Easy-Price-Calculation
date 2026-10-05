@@ -2,17 +2,25 @@ import 'package:flutter/foundation.dart';
 
 import '../models/article.dart';
 import '../models/default_articles.dart';
+import 'price_storage.dart';
 
-/// Verwaltet Artikel, Preise und den Pfandwert.
+/// Verwaltet Artikel, Preise und den Pfandwert. Mit [storage] werden
+/// Änderungen gespeichert und beim Start wieder geladen.
 class CatalogProvider extends ChangeNotifier {
   final List<Article> _articles;
+  final PriceStorage? _storage;
   int _depositCents;
 
   CatalogProvider({
     List<Article> articles = kDefaultArticles,
     int depositCents = kDefaultDepositCents,
-  })  : _articles = List.of(articles),
-        _depositCents = depositCents;
+    PriceStorage? storage,
+  })  : _storage = storage,
+        _articles = [
+          for (final a in articles)
+            a.copyWith(priceCents: storage?.loadPrice(a.id) ?? a.priceCents),
+        ],
+        _depositCents = storage?.loadDeposit() ?? depositCents;
 
   List<Article> get articles => List.unmodifiable(_articles);
 
@@ -36,6 +44,7 @@ class CatalogProvider extends ChangeNotifier {
     }
     if (_articles[index].priceCents == priceCents) return;
     _articles[index] = _articles[index].copyWith(priceCents: priceCents);
+    _storage?.savePrice(articleId, priceCents);
     notifyListeners();
   }
 
@@ -45,6 +54,7 @@ class CatalogProvider extends ChangeNotifier {
     }
     if (_depositCents == depositCents) return;
     _depositCents = depositCents;
+    _storage?.saveDeposit(depositCents);
     notifyListeners();
   }
 }
