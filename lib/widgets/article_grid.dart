@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
+import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
+import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
 import 'article_icons.dart';
 
@@ -11,7 +13,10 @@ import 'article_icons.dart';
 class ArticleGrid extends StatelessWidget {
   final List<Article> articles;
 
-  const ArticleGrid({super.key, required this.articles});
+  /// Zeigt zusätzlich eine Kachel für die Pfandrückgabe.
+  final bool showDepositReturn;
+
+  const ArticleGrid({super.key, required this.articles, this.showDepositReturn = false});
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +28,10 @@ class ArticleGrid extends StatelessWidget {
         crossAxisSpacing: 12,
         childAspectRatio: 1,
       ),
-      itemCount: articles.length,
-      itemBuilder: (context, index) => ArticleTile(article: articles[index]),
+      itemCount: articles.length + (showDepositReturn ? 1 : 0),
+      itemBuilder: (context, index) => index < articles.length
+          ? ArticleTile(article: articles[index])
+          : const DepositReturnTile(),
     );
   }
 }
@@ -34,40 +41,62 @@ class ArticleTile extends StatelessWidget {
 
   const ArticleTile({super.key, required this.article});
 
-  Future<void> _add(BuildContext context) async {
-    final cart = context.read<CartProvider>();
-    if (!article.hasVariants) {
-      cart.addArticle(article);
-      return;
-    }
-    final variant = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                '${article.name} – Sorte wählen',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            for (final v in article.variants)
-              ListTile(
-                leading: Icon(iconFor(article)),
-                title: Text(v),
-                onTap: () => Navigator.pop(context, v),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (variant != null) cart.addArticle(article, variant: variant);
-  }
-
   @override
   Widget build(BuildContext context) {
     final count = context.select<CartProvider, int>((c) => c.countOf(article.id));
+    return _Tile(
+      icon: iconFor(article),
+      title: article.name,
+      subtitle: article.hasDeposit
+          ? '${formatCents(article.priceCents)} + Pfand'
+          : formatCents(article.priceCents),
+      count: count,
+      onTap: () => context.read<CartProvider>().addArticle(article),
+      onLongPress: () => context.read<CartProvider>().removeLastOf(article.id),
+    );
+  }
+}
+
+/// Kachel für die Pfandrückgabe: legt einen Minusposten in Höhe des
+/// aktuellen Pfandwerts in den Warenkorb.
+class DepositReturnTile extends StatelessWidget {
+  const DepositReturnTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final deposit = context.select<CatalogProvider, int>((c) => c.depositCents);
+    final count = context.select<CartProvider, int>(
+        (c) => c.items.where((i) => i.type == CartItemType.depositReturn).length);
+    return _Tile(
+      icon: Icons.recycling,
+      title: 'Pfandrückgabe',
+      subtitle: formatCents(-deposit),
+      count: count,
+      onTap: context.read<CartProvider>().addDepositReturn,
+      onLongPress: context.read<CartProvider>().removeLastDepositReturn,
+    );
+  }
+}
+
+class _Tile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final int count;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _Tile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.count,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final selected = count > 0;
@@ -78,8 +107,8 @@ class ArticleTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _add(context),
-        onLongPress: selected ? () => context.read<CartProvider>().removeLastOf(article.id) : null,
+        onTap: onTap,
+        onLongPress: selected ? onLongPress : null,
         child: Stack(
           children: [
             Positioned.fill(
@@ -90,22 +119,22 @@ class ArticleTile extends StatelessWidget {
                   children: [
                     Flexible(
                       child: FittedBox(
-                        child: Icon(iconFor(article), size: 64, color: foreground),
+                        child: Icon(icon, size: 64, color: foreground),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      article.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold, color: foreground),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold, color: foreground),
+                      ),
                     ),
                     Text(
-                      article.hasDeposit
-                          ? '${formatCents(article.priceCents)} + Pfand'
-                          : formatCents(article.priceCents),
+                      subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(color: foreground),
                     ),
                   ],

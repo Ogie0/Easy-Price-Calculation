@@ -19,14 +19,10 @@ void main() {
   });
 
   test('Pfandgetränk legt automatisch Pfand dazu', () {
-    cart.addArticle(catalog.articleById('softdrink'), variant: 'Cola');
+    cart.addArticle(catalog.articleById('softdrink'));
     expect(cart.items.length, 2);
-    expect(cart.items.first.label, 'Softdrink (Cola)');
+    expect(cart.items.first.label, 'Softdrink');
     expect(cart.totalCents, 250 + 200);
-  });
-
-  test('Sorte ist bei Softdrink Pflicht', () {
-    expect(() => cart.addArticle(catalog.articleById('softdrink')), throwsArgumentError);
   });
 
   test('Storno entfernt Getränk samt Pfand', () {

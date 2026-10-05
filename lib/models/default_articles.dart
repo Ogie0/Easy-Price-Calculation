@@ -25,7 +25,6 @@ const List<Article> kDefaultArticles = [
     category: ArticleCategory.drink,
     priceCents: 250,
     hasDeposit: true,
-    variants: ['Cola', 'Fanta', 'Sprite'],
   ),
   Article(
     id: 'longdrink',

@@ -47,9 +47,7 @@ class SettingsScreen extends StatelessWidget {
   Widget _articleRow(CatalogProvider catalog, Article article) {
     return _PriceRow(
       key: ValueKey(article.id),
-      label: article.hasVariants
-          ? '${article.name} (${article.variants.join('/')})'
-          : article.name,
+      label: article.name,
       icon: article.category == ArticleCategory.food ? Icons.restaurant : Icons.local_bar,
       initialCents: article.priceCents,
       onChanged: (cents) => catalog.setPrice(article.id, cents),

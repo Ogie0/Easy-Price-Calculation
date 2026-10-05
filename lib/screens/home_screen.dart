@@ -19,7 +19,7 @@ class HomeScreen extends StatelessWidget {
     final tabView = TabBarView(
       children: [
         ArticleGrid(articles: catalog.food),
-        ArticleGrid(articles: catalog.drinks),
+        ArticleGrid(articles: catalog.drinks, showDepositReturn: true),
       ],
     );
 

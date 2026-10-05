@@ -29,17 +29,12 @@ class CartProvider extends ChangeNotifier {
 
   /// Legt einen Artikel in den Warenkorb. Bei pfandpflichtigen Getränken
   /// wird automatisch eine Pfandposition zum aktuellen Pfandwert ergänzt.
-  void addArticle(Article article, {String? variant}) {
-    if (article.hasVariants) {
-      if (variant == null || !article.variants.contains(variant)) {
-        throw ArgumentError.value(variant, 'variant', 'gültige Sorte für ${article.name} erforderlich');
-      }
-    }
+  void addArticle(Article article) {
     final current = _catalog.articleById(article.id);
     final item = CartItem(
       id: _nextId++,
       type: CartItemType.article,
-      label: variant == null ? current.name : '${current.name} ($variant)',
+      label: current.name,
       priceCents: current.priceCents,
       articleId: current.id,
     );

@@ -1,5 +1,6 @@
 import 'package:easy_price_calculation/main.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
+import 'package:easy_price_calculation/widgets/article_grid.dart';
 import 'package:easy_price_calculation/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,10 +31,13 @@ void main() {
     await tester.tap(find.text('Getränke'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Softdrink'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Fanta'));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.text('7,50 €'), findsOneWidget);
+
+    // Pfandrückgabe als Kachel bei den Getränken.
+    await tester.tap(find.widgetWithText(DepositReturnTile, 'Pfandrückgabe'));
+    await tester.pump();
+    expect(find.text('5,50 €'), findsOneWidget);
   });
 
   testWidgets('Tablet: Warenkorb dauerhaft sichtbar', (tester) async {

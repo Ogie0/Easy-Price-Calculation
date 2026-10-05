@@ -46,12 +46,12 @@ class CheckoutPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Gegeben', style: theme.textTheme.titleMedium),
+              Text('Gegeben', style: theme.textTheme.titleLarge),
               const Spacer(),
               Text(
                 checkout.input.isEmpty ? '–' : '${checkout.input} €',
                 key: const ValueKey('given-display'),
-                style: theme.textTheme.headlineSmall,
+                style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -96,8 +96,8 @@ class _ChangeDisplay extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Flexible(
@@ -116,7 +116,7 @@ class _ChangeDisplay extends StatelessWidget {
               child: Text(
                 status.state == PaymentState.awaitingCash ? '–' : formatCents(status.cents),
                 key: const ValueKey('change-display'),
-                style: theme.textTheme.displayMedium
+                style: theme.textTheme.headlineMedium
                     ?.copyWith(color: foreground, fontWeight: FontWeight.bold),
               ),
             ),
