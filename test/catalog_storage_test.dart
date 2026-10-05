@@ -1,20 +1,22 @@
 import 'package:easy_price_calculation/models/article.dart';
 import 'package:easy_price_calculation/models/default_articles.dart';
+import 'package:easy_price_calculation/providers/appearance_provider.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
-import 'package:easy_price_calculation/services/catalog_storage.dart';
+import 'package:easy_price_calculation/services/app_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test('Preise und Pfand überstehen einen Neustart', () async {
     SharedPreferences.setMockInitialValues({});
-    final first = CatalogProvider(storage: await CatalogStorage.open());
+    final first = CatalogProvider(storage: await AppStorage.open());
     expect(first.depositCents, 200);
     first
       ..setDeposit(250)
       ..setPrice('bratwurst', 350);
 
-    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    final restarted = CatalogProvider(storage: await AppStorage.open());
     expect(restarted.depositCents, 250);
     expect(restarted.articleById('bratwurst').priceCents, 350);
     expect(restarted.articleById('steak').priceCents, 500);
@@ -22,7 +24,7 @@ void main() {
 
   test('Eigene Positionen, Sichtbarkeit und Pfand werden gespeichert', () async {
     SharedPreferences.setMockInitialValues({});
-    final first = CatalogProvider(storage: await CatalogStorage.open());
+    final first = CatalogProvider(storage: await AppStorage.open());
     final kuchen = first.addCustom(
       name: ' Kuchen ',
       category: ArticleCategory.food,
@@ -35,7 +37,7 @@ void main() {
     expect(first.food.map((a) => a.name), isNot(contains('Krakauer')));
     expect(first.food.last.name, 'Kuchen');
 
-    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    final restarted = CatalogProvider(storage: await AppStorage.open());
     final restored = restarted.articleById(kuchen.id);
     expect((restored.name, restored.priceCents, restored.emoji, restored.custom),
         ('Kuchen', 150, '🍰', true));
@@ -45,14 +47,14 @@ void main() {
 
     restarted.removeCustom(kuchen.id);
     restarted.removeCustom('bratwurst'); // Standardartikel lassen sich nicht löschen.
-    final again = CatalogProvider(storage: await CatalogStorage.open());
+    final again = CatalogProvider(storage: await AppStorage.open());
     expect(again.food.map((a) => a.id), isNot(contains(kuchen.id)));
     expect(again.articleById('bratwurst').name, 'Bratwurst');
   });
 
   test('Preise aus der Vorversion werden übernommen', () async {
     SharedPreferences.setMockInitialValues({'price_cents_bratwurst': 420, 'deposit_cents': 100});
-    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final catalog = CatalogProvider(storage: await AppStorage.open());
     expect(catalog.articleById('bratwurst').priceCents, 420);
     expect(catalog.depositCents, 100);
     expect(catalog.articleById('bier').priceCents, 300);
@@ -64,18 +66,18 @@ void main() {
           '{"kaputt":true},'
           '{"id":"custom_1","name":"Kuchen","category":"food","priceCents":150,"custom":true}]',
     });
-    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final catalog = CatalogProvider(storage: await AppStorage.open());
     expect(catalog.articleById('bratwurst').priceCents, 390);
     expect(catalog.articleById('custom_1').name, 'Kuchen');
 
     SharedPreferences.setMockInitialValues({'articles_v2': 'kein json'});
-    final fallback = CatalogProvider(storage: await CatalogStorage.open());
+    final fallback = CatalogProvider(storage: await AppStorage.open());
     expect(fallback.articleById('bratwurst').priceCents, 300);
   });
 
   test('Eigene Position bearbeiten wird gespeichert', () async {
     SharedPreferences.setMockInitialValues({});
-    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final catalog = CatalogProvider(storage: await AppStorage.open());
     final kuchen = catalog.addCustom(
       name: 'Kuchen',
       category: ArticleCategory.food,
@@ -105,7 +107,7 @@ void main() {
     expect(catalog.drinks.last.name, 'Kakao');
     expect(catalog.food.map((a) => a.id), isNot(contains(kuchen.id)));
 
-    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    final restarted = CatalogProvider(storage: await AppStorage.open());
     final kakao = restarted.articleById(kuchen.id);
     expect((kakao.name, kakao.category, kakao.hasDeposit, kakao.emoji),
         ('Kakao', ArticleCategory.drink, true, '☕'));
@@ -120,7 +122,7 @@ void main() {
 
   test('Reihenfolge wird gespeichert, neue Standardartikel kommen hinten dazu', () async {
     SharedPreferences.setMockInitialValues({});
-    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    final catalog = CatalogProvider(storage: await AppStorage.open());
     final drinks = catalog.allOf(ArticleCategory.drink).map((a) => a.id).toList();
     final bierIndex = drinks.indexOf('bier');
     catalog
@@ -131,7 +133,7 @@ void main() {
     // Speisen bleiben unverändert.
     expect(catalog.food.first.id, 'bratwurst');
 
-    final restarted = CatalogProvider(storage: await CatalogStorage.open());
+    final restarted = CatalogProvider(storage: await AppStorage.open());
     expect(restarted.allOf(ArticleCategory.drink).first.id, 'bier');
 
     // Ein neuer Standardartikel (hier: einer, der im Speicher fehlt).
@@ -140,9 +142,23 @@ void main() {
         ...kDefaultArticles,
         const Article(id: 'radler', name: 'Radler', category: ArticleCategory.drink, priceCents: 300),
       ],
-      storage: await CatalogStorage.open(),
+      storage: await AppStorage.open(),
     );
     expect(withNew.allOf(ArticleCategory.drink).first.id, 'bier');
     expect(withNew.allOf(ArticleCategory.drink).last.id, 'radler');
+  });
+
+  test('Darstellung wird gespeichert', () async {
+    SharedPreferences.setMockInitialValues({});
+    final first = AppearanceProvider(storage: await AppStorage.open());
+    expect(first.themeMode, ThemeMode.system);
+    first.setThemeMode(ThemeMode.dark);
+
+    final restarted = AppearanceProvider(storage: await AppStorage.open());
+    expect(restarted.themeMode, ThemeMode.dark);
+
+    SharedPreferences.setMockInitialValues({'theme_mode': 'unbekannt'});
+    final fallback = AppearanceProvider(storage: await AppStorage.open());
+    expect(fallback.themeMode, ThemeMode.system);
   });
 }

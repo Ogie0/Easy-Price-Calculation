@@ -7,17 +7,21 @@ const String kClubLogo = 'assets/logo/jgc_logo.png';
 
 const String kAppName = 'Knülle Kalkulieren - JGC';
 
-final ThemeData clubTheme = () {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: kClubGreen,
-    primary: kClubGreen,
-    onPrimary: Colors.white,
-  );
+final ThemeData clubTheme = _clubTheme(Brightness.light);
+
+/// Dunkelmodus: dunkle Flächen, Leisten in gedecktem Vereinsgrün.
+final ThemeData clubDarkTheme = _clubTheme(Brightness.dark);
+
+ThemeData _clubTheme(Brightness brightness) {
+  final light = brightness == Brightness.light;
+  final scheme = light
+      ? ColorScheme.fromSeed(seedColor: kClubGreen, primary: kClubGreen, onPrimary: Colors.white)
+      : ColorScheme.fromSeed(seedColor: kClubGreen, brightness: Brightness.dark);
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: kClubGreen,
+    appBarTheme: AppBarTheme(
+      backgroundColor: light ? kClubGreen : scheme.primaryContainer,
       foregroundColor: Colors.white,
     ),
     // Tab-Leisten sitzen immer auf grünem Grund (AppBar bzw. Tablet-Leiste).
@@ -28,4 +32,4 @@ final ThemeData clubTheme = () {
       dividerColor: Colors.transparent,
     ),
   );
-}();
+}

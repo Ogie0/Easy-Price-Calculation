@@ -67,6 +67,12 @@ class FaqScreen extends StatelessWidget {
       'Nein, solange die App geöffnet ist, bleibt der Bildschirm an. Den Akku im Blick behalten.',
     ),
     (
+      'Gibt es einen Dunkelmodus?',
+      'Ja. Die App richtet sich automatisch nach dem Handy: Ist dort das dunkle Design an, ist '
+          'auch die Kasse dunkel. In den Einstellungen unter „Darstellung“ lässt sich „Hell“ oder '
+          '„Dunkel“ fest einstellen. Dunkel blendet abends weniger und spart bei vielen Handys Akku.',
+    ),
+    (
       'Was passiert, wenn ich die App schließe?',
       'Ist noch etwas im Warenkorb, fragt die App vorher nach. Ein offener Warenkorb geht beim '
           'Schließen verloren, Preise und Sortiment bleiben erhalten.',

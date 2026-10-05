@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'providers/appearance_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/checkout_provider.dart';
 import 'providers/quantity_provider.dart';
 import 'screens/home_screen.dart';
-import 'services/catalog_storage.dart';
+import 'services/app_storage.dart';
 import 'theme.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  CatalogStorage? storage;
+  AppStorage? storage;
   try {
-    storage = await CatalogStorage.open();
+    storage = await AppStorage.open();
   } on Object catch (e) {
     // Ohne Speicher läuft die Kasse mit den Standardpreisen weiter.
     debugPrint('Speicher nicht verfügbar: $e');
@@ -25,7 +26,7 @@ Future<void> main() async {
 
 /// Stellt alle Provider bereit und startet die App.
 class KassenRoot extends StatelessWidget {
-  final CatalogStorage? storage;
+  final AppStorage? storage;
 
   const KassenRoot({super.key, this.storage});
 
@@ -34,6 +35,7 @@ class KassenRoot extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CatalogProvider(storage: storage)),
+        ChangeNotifierProvider(create: (_) => AppearanceProvider(storage: storage)),
         ChangeNotifierProvider(
           create: (context) => CartProvider(context.read<CatalogProvider>()),
         ),
@@ -52,6 +54,7 @@ class KassenApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.select<AppearanceProvider, ThemeMode>((a) => a.themeMode);
     return MaterialApp(
       title: kAppName,
       debugShowCheckedModeBanner: false,
@@ -60,6 +63,8 @@ class KassenApp extends StatelessWidget {
       supportedLocales: const [Locale('de')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: clubTheme,
+      darkTheme: clubDarkTheme,
+      themeMode: themeMode,
       builder: (context, child) => OrientationLock(child: child!),
       home: const HomeScreen(),
     );

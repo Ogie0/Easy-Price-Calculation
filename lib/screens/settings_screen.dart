@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
+import '../providers/appearance_provider.dart';
 import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
 import '../utils/version.dart';
@@ -11,7 +12,8 @@ import 'reorder_screen.dart';
 
 /// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
 /// pro Artikel, Reihenfolge der Kacheln, eigene Positionen anlegen,
-/// bearbeiten und löschen. Änderungen gelten sofort und werden gespeichert.
+/// bearbeiten und löschen; dazu die Darstellung (hell/dunkel). Änderungen
+/// gelten sofort und werden gespeichert.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -80,6 +82,8 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   for (final a in catalog.allOf(category)) _ArticleSettings(article: a),
                 ],
+                const _SectionHeader('Darstellung'),
+                const _ThemeModeSetting(),
                 const Divider(height: 32),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
@@ -117,6 +121,39 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           ?action,
+        ],
+      ),
+    );
+  }
+}
+
+/// Hell, dunkel oder automatisch wie am Handy eingestellt.
+class _ThemeModeSetting extends StatelessWidget {
+  const _ThemeModeSetting();
+
+  static const _options = [
+    (ThemeMode.system, Icons.brightness_auto_outlined, 'Automatisch', 'Wie am Handy eingestellt'),
+    (ThemeMode.light, Icons.light_mode_outlined, 'Hell', null),
+    (ThemeMode.dark, Icons.dark_mode_outlined, 'Dunkel', null),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = context.select<AppearanceProvider, ThemeMode>((a) => a.themeMode);
+    return RadioGroup<ThemeMode>(
+      groupValue: mode,
+      onChanged: (value) {
+        if (value != null) context.read<AppearanceProvider>().setThemeMode(value);
+      },
+      child: Column(
+        children: [
+          for (final (value, icon, title, subtitle) in _options)
+            RadioListTile<ThemeMode>(
+              value: value,
+              secondary: Icon(icon),
+              title: Text(title),
+              subtitle: subtitle == null ? null : Text(subtitle),
+            ),
         ],
       ),
     );

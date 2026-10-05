@@ -4,21 +4,21 @@ import 'package:flutter/foundation.dart';
 
 import '../models/article.dart';
 import '../models/default_articles.dart';
-import '../services/catalog_storage.dart';
+import '../services/app_storage.dart';
 
 /// Verwaltet das Sortiment (Preise, Sichtbarkeit, Pfand, eigene Positionen)
 /// und den Pfandwert. Mit [storage] werden Änderungen gespeichert und beim
 /// Start wieder geladen.
 class CatalogProvider extends ChangeNotifier {
   final List<Article> _articles;
-  final CatalogStorage? _storage;
+  final AppStorage? _storage;
   int _depositCents;
   int _nextCustomId = 0;
 
   CatalogProvider({
     List<Article> articles = kDefaultArticles,
     int depositCents = kDefaultDepositCents,
-    CatalogStorage? storage,
+    AppStorage? storage,
   })  : _storage = storage,
         _articles = _load(articles, storage),
         _depositCents = storage?.loadDeposit() ?? depositCents;
@@ -26,7 +26,7 @@ class CatalogProvider extends ChangeNotifier {
   /// Gespeichertes Sortiment in gespeicherter Reihenfolge; Standardartikel
   /// behalten Namen und Emoji aus dem Code, neue Standardartikel (z. B. nach
   /// einem Update) kommen hinten dazu.
-  static List<Article> _load(List<Article> defaults, CatalogStorage? storage) {
+  static List<Article> _load(List<Article> defaults, AppStorage? storage) {
     final stored = storage?.loadArticles();
     if (stored == null) {
       return [

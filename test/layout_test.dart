@@ -1,6 +1,7 @@
 import 'package:easy_price_calculation/models/article.dart';
 import 'package:easy_price_calculation/main.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
+import 'package:easy_price_calculation/screens/home_screen.dart';
 import 'package:easy_price_calculation/widgets/article_grid.dart';
 import 'package:easy_price_calculation/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
@@ -428,5 +429,32 @@ void main() {
     await tester.drag(find.byIcon(Icons.drag_handle).last, const Offset(0, -600));
     await tester.pumpAndSettle();
     expect(catalog.allOf(ArticleCategory.drink).first.id, lastBefore);
+  });
+
+  testWidgets('Darstellung: Dunkel, Hell und automatisch wie am Handy', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    Brightness brightness() =>
+        Theme.of(tester.element(find.byType(HomeScreen, skipOffstage: false))).brightness;
+    expect(brightness(), Brightness.light);
+
+    await openSettings(tester);
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('Dunkel').hitTestable(), 300, scrollable: settingsList);
+    await tester.tap(find.text('Dunkel'));
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.dark);
+
+    // „Automatisch“ folgt der Einstellung des Handys.
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.tap(find.text('Automatisch'));
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.dark);
+
+    await tester.tap(find.text('Hell'));
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.light);
   });
 }

@@ -118,7 +118,10 @@ class HomeScreen extends StatelessWidget {
                       flex: 5,
                       child: Column(
                         children: [
-                          const Material(color: kClubGreen, child: _tabBar),
+                          Material(
+                            color: Theme.of(context).appBarTheme.backgroundColor,
+                            child: _tabBar,
+                          ),
                           const QuantityBar(),
                           Expanded(child: tabView),
                         ],
