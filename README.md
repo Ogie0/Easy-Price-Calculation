@@ -24,6 +24,12 @@ flutter run
 Die Flutter-Version ist im Workflow festgelegt
 (`.github/workflows/build-apk.yml`); lokal am besten dieselbe verwenden.
 
+## Einstellungen
+
+Preise, Pfandwert und Sortiment sind durch ein Master-Passwort geschützt
+(`lib/widgets/password_dialog.dart`). Es verhindert versehentliche Änderungen
+an der Kasse, ist aber keine echte Sicherung, da der Quellcode einsehbar ist.
+
 ## Signatur
 
 Release-APKs werden mit einem festen Schlüssel signiert, damit sich neue

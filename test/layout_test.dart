@@ -14,6 +14,15 @@ void setScreen(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
+/// Öffnet die Einstellungen mit dem Master-Passwort.
+Future<void> openSettings(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Einstellungen'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const ValueKey('master-password')), '1960');
+  await tester.tap(find.text('Öffnen'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('Smartphone: Tabs und Warenkorbleiste', (tester) async {
     setScreen(tester, const Size(400, 800));
@@ -56,8 +65,7 @@ void main() {
     setScreen(tester, const Size(1280, 800));
     await tester.pumpWidget(buildApp());
 
-    await tester.tap(find.byTooltip('Einstellungen'));
-    await tester.pumpAndSettle();
+    await openSettings(tester);
 
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), '1,50');
@@ -148,8 +156,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     expect(find.text('Krakauer'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Einstellungen'));
-    await tester.pumpAndSettle();
+    await openSettings(tester);
 
     // Krakauer ausblenden (erster „Anzeigen“-Chip nach Bratwurst/Currywurst).
     final krakauer = find.ancestor(of: find.text('Krakauer'), matching: find.byType(Column)).first;
@@ -171,5 +178,25 @@ void main() {
     expect(find.text('Krakauer'), findsNothing);
     expect(find.text('Kuchen'), findsOneWidget);
     expect(find.text('1,50 €'), findsOneWidget);
+  });
+
+  testWidgets('Einstellungen nur mit Master-Passwort', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+
+    await tester.tap(find.byTooltip('Einstellungen'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('master-password')), '1234');
+    await tester.tap(find.text('Öffnen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Falsches Passwort'), findsOneWidget);
+    expect(find.text('Pfandwert'), findsNothing);
+
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pfandwert'), findsNothing);
+
+    await openSettings(tester);
+    expect(find.text('Pfandwert'), findsOneWidget);
   });
 }

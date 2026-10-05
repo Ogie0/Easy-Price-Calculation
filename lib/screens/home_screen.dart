@@ -9,6 +9,7 @@ import '../utils/layout.dart';
 import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/checkout_panel.dart';
+import '../widgets/password_dialog.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -76,9 +77,13 @@ class HomeScreen extends StatelessWidget {
               IconButton(
                 tooltip: 'Einstellungen',
                 icon: const Icon(Icons.settings),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-                ),
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  if (!await askMasterPassword(context)) return;
+                  await navigator.push(
+                    MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+                  );
+                },
               ),
             ],
             // Auf dem Tablet sitzt die Tab-Leiste nur über den Kacheln.
