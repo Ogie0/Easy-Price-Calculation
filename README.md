@@ -1,6 +1,6 @@
 # Knülle Kalkulieren - JGC
 
-Offline-Kassen-App des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android). Speisen und Getränke
+Offline-Kassen-App („Knülle Kasse“ auf dem Startbildschirm) des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android). Speisen und Getränke
 per Kachel buchen, automatische Pfandposten, Pfandrückgabe, Rückgeldrechner
 mit Ziffernblock. Preise und Pfandwert lassen sich in den Einstellungen
 ändern und bleiben auf dem Gerät gespeichert. Es werden keine Umsätze
