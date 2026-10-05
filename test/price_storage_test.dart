@@ -1,5 +1,5 @@
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
-import 'package:easy_price_calculation/providers/price_storage.dart';
+import 'package:easy_price_calculation/services/price_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

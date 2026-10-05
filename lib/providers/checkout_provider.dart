@@ -85,6 +85,13 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Stellt eine frühere Eingabe wieder her („Rückgängig“), aber nur, wenn
+  /// inzwischen nichts Neues eingetippt wurde.
+  void restoreInput(String input) {
+    if (_input.isNotEmpty || input.isEmpty) return;
+    _apply(input);
+  }
+
   void reset() {
     if (_input.isEmpty) return;
     _input = '';

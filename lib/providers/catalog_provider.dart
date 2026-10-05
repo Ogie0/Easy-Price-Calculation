@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/article.dart';
 import '../models/default_articles.dart';
-import 'price_storage.dart';
+import '../services/price_storage.dart';
 
 /// Verwaltet Artikel, Preise und den Pfandwert. Mit [storage] werden
 /// Änderungen gespeichert und beim Start wieder geladen.
@@ -44,8 +46,15 @@ class CatalogProvider extends ChangeNotifier {
     }
     if (_articles[index].priceCents == priceCents) return;
     _articles[index] = _articles[index].copyWith(priceCents: priceCents);
-    _storage?.savePrice(articleId, priceCents);
+    _save(_storage?.savePrice(articleId, priceCents));
     notifyListeners();
+  }
+
+  /// Speichert im Hintergrund; ein Fehler beim Schreiben soll die Kasse
+  /// nicht stören, der Wert gilt dann nur bis zum nächsten Neustart.
+  void _save(Future<void>? write) {
+    if (write == null) return;
+    unawaited(write.catchError((Object e) => debugPrint('Speichern fehlgeschlagen: $e')));
   }
 
   void setDeposit(int depositCents) {
@@ -54,7 +63,7 @@ class CatalogProvider extends ChangeNotifier {
     }
     if (_depositCents == depositCents) return;
     _depositCents = depositCents;
-    _storage?.saveDeposit(depositCents);
+    _save(_storage?.saveDeposit(depositCents));
     notifyListeners();
   }
 }

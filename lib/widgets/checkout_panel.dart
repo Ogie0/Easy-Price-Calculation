@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/cart_provider.dart';
 import '../providers/checkout_provider.dart';
+import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'amount_row.dart';
 
@@ -20,7 +21,10 @@ class CheckoutPanel extends StatelessWidget {
     final cart = context.read<CartProvider>();
     final checkout = context.read<CheckoutProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final items = List.of(cart.items);
+    final input = checkout.input;
 
+    completeFeedback();
     cart.clear();
     checkout.reset();
 
@@ -32,7 +36,18 @@ class CheckoutPanel extends StatelessWidget {
     };
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 5),
+        persist: false,
+        action: SnackBarAction(
+          label: 'Rückgängig',
+          onPressed: () {
+            cart.restore(items);
+            checkout.restoreInput(input);
+          },
+        ),
+      ));
     onCompleted?.call();
   }
 
@@ -134,7 +149,12 @@ class _QuickAmounts extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 44),
               ),
-              onPressed: onPressed,
+              onPressed: onPressed == null
+                  ? null
+                  : () {
+                      tapFeedback();
+                      onPressed();
+                    },
               child: FittedBox(child: Text(label)),
             ),
           ),
@@ -158,7 +178,12 @@ class Numpad extends StatelessWidget {
   Widget build(BuildContext context) {
     final checkout = context.read<CheckoutProvider>();
 
-    Widget key(String id, Widget child, VoidCallback onPressed, {bool tonal = false}) {
+    Widget key(String id, Widget child, VoidCallback action, {bool tonal = false}) {
+      void onPressed() {
+        tapFeedback();
+        action();
+      }
+
       return Expanded(
         child: Padding(
           padding: const EdgeInsets.all(3),

@@ -5,26 +5,40 @@ on:
     branches: [main, master, 'claude/**']
   workflow_dispatch:
 
+# Standard: nur lesen. Schreibrechte bekommt allein der Release-Job.
 permissions:
-  contents: write
+  contents: read
+
+# Alle Läufe veröffentlichen dasselbe Release "apk-latest"; ein neuer Lauf
+# bricht einen älteren ab, damit sie sich nicht in die Quere kommen.
+concurrency:
+  group: apk-latest
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.label }}
+      permanent: ${{ steps.signing.outputs.permanent }}
+      sha256: ${{ steps.signature.outputs.sha256 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
+      # Feste Flutter-Version, damit Builds reproduzierbar bleiben. Zum
+      # Aktualisieren hier und lokal dieselbe Version verwenden.
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.6
           cache: true
 
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test
 
@@ -55,10 +69,22 @@ jobs:
           keyPassword=$KEYSTORE_PASSWORD
           EOF
 
-      - run: flutter build apk --release
+      # Versionsname aus pubspec.yaml, Build-Nummer = Nummer dieses Laufs
+      # (steigt immer, damit Android jede neue APK als Update erkennt).
+      - name: Version bestimmen
+        id: version
+        run: |
+          NAME="$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "label=$NAME (Build $GITHUB_RUN_NUMBER)" >> "$GITHUB_OUTPUT"
 
-      - name: APK umbenennen
-        run: cp build/app/outputs/flutter-apk/app-release.apk JGC-Preisrechner.apk
+      - name: APK bauen
+        run: |
+          flutter build apk --release \
+            --build-name="${{ steps.version.outputs.name }}" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --dart-define=APP_VERSION="${{ steps.version.outputs.label }}"
+          cp build/app/outputs/flutter-apk/app-release.apk JGC-Preisrechner.apk
 
       - name: Signatur prüfen
         id: signature
@@ -67,18 +93,30 @@ jobs:
           "$APKSIGNER" verify --print-certs JGC-Preisrechner.apk | tee signature.txt
           echo "sha256=$(grep -m1 'SHA-256 digest' signature.txt | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: JGC-Preisrechner-apk
           path: JGC-Preisrechner.apk
 
-      # Stellt die neueste APK unter "Releases" bereit, damit sie direkt
-      # auf dem Smartphone heruntergeladen werden kann.
+  # Stellt die neueste APK unter "Releases" bereit, damit sie direkt auf dem
+  # Smartphone heruntergeladen werden kann.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: JGC-Preisrechner-apk
+
       - name: Release "apk-latest" aktualisieren
         env:
           GH_TOKEN: ${{ github.token }}
-          PERMANENT: ${{ steps.signing.outputs.permanent }}
-          FINGERPRINT: ${{ steps.signature.outputs.sha256 }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          PERMANENT: ${{ needs.build.outputs.permanent }}
+          FINGERPRINT: ${{ needs.build.outputs.sha256 }}
         run: |
           if [ "$PERMANENT" = "true" ]; then
             SIGNING="Signiert mit dem festen Schlüssel: Updates über die bestehende Installation funktionieren."
@@ -89,8 +127,8 @@ jobs:
           gh release create apk-latest JGC-Preisrechner.apk \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "JGC Preisrechner (neueste APK)" \
-            --notes "Automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren.
+            --title "JGC Preisrechner $VERSION" \
+            --notes "Version $VERSION, automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren.
 
           ${SIGNING}
           Zertifikat (SHA-256): ${FINGERPRINT}"

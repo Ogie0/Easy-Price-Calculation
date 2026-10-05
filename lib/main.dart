@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/cart_provider.dart';
 import 'providers/catalog_provider.dart';
 import 'providers/checkout_provider.dart';
-import 'providers/price_storage.dart';
 import 'screens/home_screen.dart';
+import 'services/price_storage.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
@@ -25,9 +26,8 @@ class KassenRoot extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CatalogProvider(storage: storage)),
-        ChangeNotifierProxyProvider<CatalogProvider, CartProvider>(
+        ChangeNotifierProvider(
           create: (context) => CartProvider(context.read<CatalogProvider>()),
-          update: (_, catalog, cart) => cart!..updateCatalog(catalog),
         ),
         ChangeNotifierProvider(
           create: (context) => CheckoutProvider(cart: context.read<CartProvider>()),
@@ -46,6 +46,10 @@ class KassenApp extends StatelessWidget {
     return MaterialApp(
       title: 'JGC Preisrechner',
       debugShowCheckedModeBanner: false,
+      // Deutsche System-Texte (z. B. „Zurück“, „Einfügen“).
+      locale: const Locale('de'),
+      supportedLocales: const [Locale('de')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: ThemeData(
         colorSchemeSeed: Colors.green,
         useMaterial3: true,

@@ -1,23 +1,20 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/article.dart';
 import '../models/cart_item.dart';
 import 'catalog_provider.dart';
 
-/// Warenkorb inkl. Pfand-Logik und Rückgeldberechnung.
+/// Warenkorb inkl. Pfand-Logik.
 class CartProvider extends ChangeNotifier {
-  CatalogProvider _catalog;
+  final CatalogProvider _catalog;
   final List<CartItem> _items = [];
   int _nextId = 1;
 
   CartProvider(this._catalog);
 
-  /// Für ChangeNotifierProxyProvider: aktualisiert die Katalog-Referenz.
-  void updateCatalog(CatalogProvider catalog) {
-    _catalog = catalog;
-  }
-
-  List<CartItem> get items => List.unmodifiable(_items);
+  List<CartItem> get items => UnmodifiableListView(_items);
 
   /// Positionen für die Anzeige: neueste zuerst, Pfand jeweils direkt unter
   /// dem zugehörigen Getränk.
@@ -99,9 +96,6 @@ class CartProvider extends ChangeNotifier {
     removeItem(_items[index].id);
   }
 
-  /// Rückgeld = gegebenes Geld - Gesamtsumme. Negativ, wenn zu wenig gegeben.
-  int changeFor(int givenCents) => givenCents - totalCents;
-
   /// Kaufabschluss bzw. Leeren des Warenkorbs.
   void clear() {
     if (_items.isEmpty) return;
@@ -109,13 +103,12 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Schließt den Kauf ab, gibt das Rückgeld zurück und leert den Warenkorb.
-  int checkout(int givenCents) {
-    final change = changeFor(givenCents);
-    if (change < 0) {
-      throw StateError('Gegebenes Geld reicht nicht aus');
-    }
-    clear();
-    return change;
+  /// Legt zuvor entfernte Positionen wieder in den Warenkorb, z. B. für
+  /// „Rückgängig“ nach dem Abschließen. Sie kommen vor bereits neu
+  /// gebuchte Positionen, damit die Reihenfolge erhalten bleibt.
+  void restore(List<CartItem> items) {
+    if (items.isEmpty) return;
+    _items.insertAll(0, items);
+    notifyListeners();
   }
 }

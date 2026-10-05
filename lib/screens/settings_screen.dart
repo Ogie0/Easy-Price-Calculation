@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/article.dart';
 import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
+import '../utils/version.dart';
 import '../widgets/article_emoji.dart';
 
 /// Anpassung aller Artikelpreise und des Pfandwerts. Änderungen werden
@@ -37,6 +38,12 @@ class SettingsScreen extends StatelessWidget {
                 for (final a in catalog.food) _articleRow(catalog, a),
                 const _SectionHeader('Getränke'),
                 for (final a in catalog.drinks) _articleRow(catalog, a),
+                const Divider(height: 32),
+                const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Version'),
+                  subtitle: Text(kAppVersion),
+                ),
               ],
             ),
           ),

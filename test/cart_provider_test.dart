@@ -58,13 +58,21 @@ void main() {
     expect(cart.totalCents, 500 + 650);
   });
 
-  test('Rückgeld und Kaufabschluss', () {
-    cart.addArticle(catalog.articleById('longdrink'));
-    expect(cart.changeFor(1000), 1000 - 800);
-    expect(cart.checkout(1000), 200);
-    expect(cart.isEmpty, isTrue);
-    cart.addArticle(catalog.articleById('sekt'));
-    expect(() => cart.checkout(100), throwsStateError);
+  test('Rückgängig legt abgeschlossene Positionen wieder hinein', () {
+    cart
+      ..addArticle(catalog.articleById('wasser'))
+      ..addArticle(catalog.articleById('steak'));
+    final snapshot = List.of(cart.items);
+    cart.clear();
+    cart.addArticle(catalog.articleById('pommes'));
+
+    cart.restore(snapshot);
+    expect(cart.items.map((i) => i.label), ['Wasser', 'Pfand', 'Steak', 'Pommes']);
+    expect(cart.totalCents, 200 + 200 + 500 + 300);
+
+    // Stornieren nach dem Wiederherstellen funktioniert weiter (inkl. Pfand).
+    cart.removeLastOf('wasser');
+    expect(cart.totalCents, 500 + 300);
   });
 
   test('Geldformatierung und -eingabe', () {

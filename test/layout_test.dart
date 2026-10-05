@@ -69,7 +69,8 @@ void main() {
     expect(catalog.depositCents, 150);
     expect(catalog.articleById('bratwurst').priceCents, 320);
 
-    await tester.pageBack();
+    // Deutsche System-Texte: Der Zurück-Button heißt „Zurück“.
+    await tester.tap(find.byTooltip('Zurück'));
     await tester.pumpAndSettle();
     expect(find.text('3,20 €'), findsOneWidget);
   });

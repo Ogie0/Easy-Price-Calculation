@@ -1,7 +1,6 @@
 .dart_tool/
 build/
 .packages
-pubspec.lock
 .idea/
 *.iml
 .flutter-plugins

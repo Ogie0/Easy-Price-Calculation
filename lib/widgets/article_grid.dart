@@ -7,6 +7,7 @@ import '../models/article.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
+import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'article_emoji.dart';
 
@@ -158,8 +159,16 @@ class _Tile extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        onLongPress: selected ? onLongPress : null,
+        onTap: () {
+          tapFeedback();
+          onTap();
+        },
+        onLongPress: selected
+            ? () {
+                tapFeedback();
+                onLongPress();
+              }
+            : null,
         child: Stack(
           children: [
             // Feste Anteile für Bild und Text; beides verkleinert sich bei

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../screens/checkout_screen.dart';
+import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'amount_row.dart';
 
@@ -102,7 +103,10 @@ class _CartItemTile extends StatelessWidget {
             IconButton(
               tooltip: 'Stornieren',
               icon: const Icon(Icons.remove_circle_outline),
-              onPressed: () => context.read<CartProvider>().removeItem(item.id),
+              onPressed: () {
+                tapFeedback();
+                context.read<CartProvider>().removeItem(item.id);
+              },
             ),
         ],
       ),

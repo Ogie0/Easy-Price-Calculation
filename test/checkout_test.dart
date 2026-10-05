@@ -117,6 +117,25 @@ void main() {
     expect(find.text('Abgeschlossen – Rückgeld 5,50 €'), findsOneWidget);
   });
 
+  testWidgets('Rückgängig nach dem Abschließen stellt Kauf wieder her', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await press(tester, '2 0');
+    await tester.tap(find.byKey(const ValueKey('complete')));
+    await tester.pump();
+    expect(textOf(tester, 'cart-total'), '0,00 €');
+
+    await tester.pump(const Duration(milliseconds: 500)); // Snackbar fährt ein
+    await tester.tap(find.text('Rückgängig'));
+    await tester.pump();
+    expect(textOf(tester, 'cart-total'), '5,00 €');
+    expect(textOf(tester, 'given-display'), '20 €');
+    expect(textOf(tester, 'change-display'), '15,00 €');
+  });
+
   testWidgets('Tablet: Warenkorb leeren löscht auch das Bargeld', (tester) async {
     setScreen(tester, const Size(1280, 800));
     await tester.pumpWidget(const KassenRoot());
