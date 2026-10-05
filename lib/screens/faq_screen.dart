@@ -17,13 +17,15 @@ class FaqScreen extends StatelessWidget {
     (
       'Wie storniere ich eine einzelne Position?',
       'Im Warenkorb auf ⊖ neben der Position tippen. Bei Getränken mit Pfand wird das Pfand '
-          'automatisch mit entfernt. Der Mülleimer oben leert den ganzen Warenkorb.',
+          'automatisch mit entfernt. Der Mülleimer oben leert den ganzen Warenkorb – auch das '
+          'lässt sich über „Rückgängig“ in der Meldung unten zurückholen.',
     ),
     (
       'Wie funktioniert das Pfand?',
       'Bei Getränken mit Pfand (z. B. Wasser, Softdrink, Longdrink, Bier) kommt das Pfand '
           'automatisch als eigene Position dazu. Bringt jemand einen Becher zurück, im Tab '
-          '„Getränke“ auf „Pfandrückgabe“ tippen – das bucht den Pfandbetrag als Minusbetrag.',
+          '„Getränke“ auf „Pfandrückgabe“ tippen – das bucht den Pfandbetrag als Minusbetrag. '
+          'Steht der Pfandwert in den Einstellungen auf 0,00 €, ist Pfand ganz ausgeschaltet.',
     ),
     (
       'Wie berechne ich das Rückgeld?',

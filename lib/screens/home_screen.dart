@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -54,14 +56,14 @@ class HomeScreen extends StatelessWidget {
     final tabView = TabBarView(
       children: [
         ArticleGrid(articles: catalog.food),
-        ArticleGrid(articles: catalog.drinks, showDepositReturn: true),
+        ArticleGrid(articles: catalog.drinks, showDepositReturn: catalog.depositCents > 0),
       ],
     );
 
     return PopScope(
       canPop: cartIsEmpty,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _confirmClose(context);
+        if (!didPop) unawaited(_confirmClose(context));
       },
       child: DefaultTabController(
         length: 2,

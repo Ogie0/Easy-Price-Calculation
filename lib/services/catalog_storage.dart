@@ -23,18 +23,27 @@ class CatalogStorage {
   int? loadDeposit() => _prefs.getInt(_depositKey);
 
   /// Gespeichertes Sortiment oder null, wenn noch nichts gespeichert wurde
-  /// (oder die Daten unlesbar sind).
+  /// (oder die Daten unlesbar sind). Einzelne unlesbare Einträge werden
+  /// übersprungen, damit nicht das ganze Sortiment verloren geht.
   List<Article>? loadArticles() {
     final raw = _prefs.getString(_articlesKey);
     if (raw == null) return null;
+    final Object? decoded;
     try {
-      return [
-        for (final entry in jsonDecode(raw) as List<Object?>)
-          Article.fromJson((entry! as Map).cast<String, Object?>()),
-      ];
-    } on Object {
+      decoded = jsonDecode(raw);
+    } on FormatException {
       return null;
     }
+    if (decoded is! List) return null;
+    final articles = <Article>[];
+    for (final entry in decoded) {
+      try {
+        articles.add(Article.fromJson((entry as Map).cast<String, Object?>()));
+      } on Object {
+        // Unlesbarer Eintrag: überspringen.
+      }
+    }
+    return articles;
   }
 
   int? loadLegacyPrice(String articleId) => _prefs.getInt('$_legacyPricePrefix$articleId');

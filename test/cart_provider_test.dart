@@ -58,26 +58,50 @@ void main() {
     expect(cart.totalCents, 500 + 650);
   });
 
-  test('Rückgängig legt abgeschlossene Positionen wieder hinein', () {
+  test('Rückgängig nur in einen leeren Warenkorb', () {
     cart
       ..addArticle(catalog.articleById('wasser'))
       ..addArticle(catalog.articleById('steak'));
     final snapshot = List.of(cart.items);
     cart.clear();
+
     cart.addArticle(catalog.articleById('pommes'));
+    expect(cart.restore(snapshot), isFalse, reason: 'neuer Kauf läuft schon');
+    expect(cart.items.map((i) => i.label), ['Pommes']);
 
-    cart.restore(snapshot);
-    expect(cart.items.map((i) => i.label), ['Wasser', 'Pfand', 'Steak', 'Pommes']);
-    expect(cart.totalCents, 200 + 200 + 500 + 300);
-
+    cart.clear();
+    expect(cart.restore(snapshot), isTrue);
+    expect(cart.items.map((i) => i.label), ['Wasser', 'Pfand', 'Steak']);
     // Stornieren nach dem Wiederherstellen funktioniert weiter (inkl. Pfand).
     cart.removeLastOf('wasser');
-    expect(cart.totalCents, 500 + 300);
+    expect(cart.totalCents, 500);
+  });
+
+  test('Pfandwert 0: kein Pfandposten', () {
+    catalog.setDeposit(0);
+    cart.addArticle(catalog.articleById('bier'));
+    expect(cart.items.map((i) => i.label), ['Bier']);
+  });
+
+  test('Lange Pfandrückgabe-Storno und letzte Einheit', () {
+    cart
+      ..addDepositReturn()
+      ..addDepositReturn()
+      ..removeLastDepositReturn();
+    expect(cart.totalCents, -200);
+    cart.removeLastDepositReturn();
+    cart.removeLastDepositReturn(); // nichts mehr da: kein Fehler
+    expect(cart.isEmpty, isTrue);
   });
 
   test('Geldformatierung und -eingabe', () {
     expect(formatCents(-250), '-2,50 €');
-    expect(parseCents('2,5'), 250);
-    expect(parseCents('abc'), isNull);
+    expect(formatCents(5), '0,05 €');
+    final valid = {'2,5': 250, '2.50': 250, '3': 300, ',5': 50, '12,': 1200, '0,05': 5, '3,00 €': 300};
+    valid.forEach((input, cents) => expect(parseCents(input), cents, reason: input));
+    for (final invalid in ['', ',', 'abc', '-2', '1e3', '2,505', '1,2,3']) {
+      expect(parseCents(invalid), isNull, reason: invalid);
+    }
+    expect(centsToInput(250), '2,50');
   });
 }

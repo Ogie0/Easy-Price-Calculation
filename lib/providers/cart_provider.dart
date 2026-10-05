@@ -50,7 +50,7 @@ class CartProvider extends ChangeNotifier {
     );
     _items.add(item);
 
-    if (current.hasDeposit) {
+    if (current.hasDeposit && _catalog.depositCents > 0) {
       _items.add(CartItem(
         id: _nextId++,
         type: CartItemType.deposit,
@@ -103,12 +103,14 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Legt zuvor entfernte Positionen wieder in den Warenkorb, z. B. für
-  /// „Rückgängig“ nach dem Abschließen. Sie kommen vor bereits neu
-  /// gebuchte Positionen, damit die Reihenfolge erhalten bleibt.
-  void restore(List<CartItem> items) {
-    if (items.isEmpty) return;
-    _items.insertAll(0, items);
+  /// Legt zuvor entfernte Positionen wieder in den Warenkorb („Rückgängig“).
+  /// Nur in einen leeren Warenkorb, damit ein inzwischen begonnener neuer
+  /// Kauf nicht mit dem alten vermischt wird. Liefert false, wenn das nicht
+  /// möglich war.
+  bool restore(List<CartItem> items) {
+    if (items.isEmpty || _items.isNotEmpty) return false;
+    _items.addAll(items);
     notifyListeners();
+    return true;
   }
 }

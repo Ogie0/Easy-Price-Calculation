@@ -56,4 +56,19 @@ void main() {
     expect(catalog.depositCents, 100);
     expect(catalog.articleById('bier').priceCents, 300);
   });
+
+  test('Unlesbare Einträge werden übersprungen statt alles zu verwerfen', () async {
+    SharedPreferences.setMockInitialValues({
+      'articles_v2': '[{"id":"bratwurst","name":"Bratwurst","category":"food","priceCents":390},'
+          '{"kaputt":true},'
+          '{"id":"custom_1","name":"Kuchen","category":"food","priceCents":150,"custom":true}]',
+    });
+    final catalog = CatalogProvider(storage: await CatalogStorage.open());
+    expect(catalog.articleById('bratwurst').priceCents, 390);
+    expect(catalog.articleById('custom_1').name, 'Kuchen');
+
+    SharedPreferences.setMockInitialValues({'articles_v2': 'kein json'});
+    final fallback = CatalogProvider(storage: await CatalogStorage.open());
+    expect(fallback.articleById('bratwurst').priceCents, 300);
+  });
 }

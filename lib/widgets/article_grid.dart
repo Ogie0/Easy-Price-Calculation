@@ -28,6 +28,18 @@ class ArticleGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = articles.length + (showDepositReturn ? 1 : 0);
+    if (count == 0) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'Hier ist gerade nichts sichtbar.\n'
+            'In den Einstellungen lassen sich Artikel über „Anzeigen“ einblenden.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final fit = GridFit.of(count, constraints.biggest, padding: _padding, spacing: _spacing);
@@ -96,10 +108,11 @@ class ArticleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = context.select<CartProvider, int>((c) => c.countOf(article.id));
+    final depositActive = context.select<CatalogProvider, bool>((c) => c.depositCents > 0);
     return _Tile(
       emoji: emojiFor(article),
       title: article.name,
-      subtitle: article.hasDeposit
+      subtitle: article.hasDeposit && depositActive
           ? '${formatCents(article.priceCents)} + Pfand'
           : formatCents(article.priceCents),
       count: count,

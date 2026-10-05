@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
+import '../providers/checkout_provider.dart';
 import '../screens/checkout_screen.dart';
 import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'amount_row.dart';
+import 'undo_snack_bar.dart';
 
 /// Warenkorb mit Positionsliste und Gesamtsumme.
 class CartPanel extends StatelessWidget {
@@ -65,9 +67,19 @@ class CartPanel extends StatelessWidget {
   }
 }
 
-/// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft.
+/// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft. Ein
+/// versehentliches Leeren lässt sich über „Rückgängig“ zurückholen.
 class ClearCartButton extends StatelessWidget {
   const ClearCartButton({super.key});
+
+  void _clear(BuildContext context) {
+    final cart = context.read<CartProvider>();
+    final items = List.of(cart.items);
+    final input = context.read<CheckoutProvider>().input;
+    tapFeedback();
+    cart.clear();
+    showUndoSnackBar(context, message: 'Warenkorb geleert', items: items, input: input);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +87,7 @@ class ClearCartButton extends StatelessWidget {
     return IconButton(
       tooltip: 'Warenkorb leeren',
       icon: const Icon(Icons.delete_sweep),
-      onPressed: isEmpty ? null : context.read<CartProvider>().clear,
+      onPressed: isEmpty ? null : () => _clear(context),
     );
   }
 }

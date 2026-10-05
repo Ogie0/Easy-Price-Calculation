@@ -1,3 +1,4 @@
+import 'package:easy_price_calculation/models/article.dart';
 import 'package:easy_price_calculation/main.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/widgets/article_grid.dart';
@@ -233,5 +234,74 @@ void main() {
     await tester.tap(find.text('Open-Source-Lizenzen'));
     await tester.pumpAndSettle();
     expect(find.text('Knülle Kalkulieren - JGC'), findsWidgets);
+  });
+
+  testWidgets('Langes Drücken nimmt eine Einheit heraus', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.text('Steak'));
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    Finder badge(String n) => find.descendant(of: find.byType(CircleAvatar), matching: find.text(n));
+    expect(badge('2'), findsOneWidget);
+
+    await tester.longPress(find.text('Steak').first);
+    await tester.pump();
+    expect(badge('1'), findsOneWidget);
+  });
+
+  testWidgets('Leerer Tab zeigt einen Hinweis, Pfandwert 0 blendet Pfand aus', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    final catalog = Provider.of<CatalogProvider>(
+      tester.element(find.byType(Scaffold).first),
+      listen: false,
+    );
+    for (final a in catalog.food) {
+      catalog.setVisible(a.id, false);
+    }
+    catalog.setDeposit(0);
+    await tester.pump();
+    expect(find.textContaining('Hier ist gerade nichts sichtbar'), findsOneWidget);
+
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pfandrückgabe'), findsNothing);
+    expect(find.textContaining('+ Pfand'), findsNothing);
+  });
+
+  testWidgets('Einstellungen: eigene Position löschen, Preisfeld korrigiert sich', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+    final catalog = Provider.of<CatalogProvider>(
+      tester.element(find.byType(Scaffold).first),
+      listen: false,
+    );
+    catalog.addCustom(name: 'Kuchen', category: ArticleCategory.food, priceCents: 150);
+    await openSettings(tester);
+
+    // Preisfeld leeren und verlassen: Der gespeicherte Preis erscheint wieder.
+    final bratwurstField = find.descendant(
+      of: find.ancestor(of: find.text('Bratwurst'), matching: find.byType(ListTile)),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(bratwurstField, '');
+    await tester.pump();
+    expect(find.text('Ungültiger Betrag'), findsOneWidget);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(find.text('Ungültiger Betrag'), findsNothing);
+    expect(tester.widget<TextField>(bratwurstField).controller!.text, '3,00');
+
+    await tester.scrollUntilVisible(
+      find.text('Löschen'),
+      200,
+      scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
+    );
+    await tester.tap(find.text('Löschen'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+    await tester.pumpAndSettle();
+    expect(catalog.food.map((a) => a.name), isNot(contains('Kuchen')));
   });
 }

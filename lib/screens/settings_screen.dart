@@ -189,6 +189,7 @@ class _PriceRow extends StatefulWidget {
 
 class _PriceRowState extends State<_PriceRow> {
   late final TextEditingController _controller;
+  late int _lastValid = widget.initialCents;
   String? _error;
 
   @override
@@ -207,7 +208,19 @@ class _PriceRowState extends State<_PriceRow> {
     final cents = parseCents(text);
     final error = cents == null ? 'Ungültiger Betrag' : null;
     if (error != _error) setState(() => _error = error);
-    if (cents != null) widget.onChanged(cents);
+    if (cents == null) return;
+    _lastValid = cents;
+    widget.onChanged(cents);
+  }
+
+  /// Beim Verlassen des Feldes steht dort wieder der gültige, gespeicherte
+  /// Preis (z. B. „3,00“ statt „3“ oder eines leeren Feldes).
+  void _onFocusChange(bool focused) {
+    if (focused) return;
+    setState(() {
+      _controller.text = centsToInput(_lastValid);
+      _error = null;
+    });
   }
 
   @override
@@ -219,7 +232,10 @@ class _PriceRowState extends State<_PriceRow> {
         title: Text(widget.label),
         trailing: SizedBox(
           width: 120,
-          child: _PriceField(controller: _controller, error: _error, onChanged: _onChanged),
+          child: Focus(
+            onFocusChange: _onFocusChange,
+            child: _PriceField(controller: _controller, error: _error, onChanged: _onChanged),
+          ),
         ),
       ),
     );
@@ -322,6 +338,7 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
               key: const ValueKey('custom-name'),
               controller: _name,
               autofocus: true,
+              maxLength: 24,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: 'Name',
@@ -355,9 +372,12 @@ class _CustomArticleDialogState extends State<_CustomArticleDialog> {
             ),
             TextField(
               controller: _emoji,
+              // Ein Emoji (zählt als ein Zeichen, auch wenn es zusammengesetzt ist).
+              maxLength: 1,
               decoration: const InputDecoration(
                 labelText: 'Emoji (optional)',
                 hintText: 'z. B. 🍰',
+                counterText: '',
                 border: OutlineInputBorder(),
               ),
             ),

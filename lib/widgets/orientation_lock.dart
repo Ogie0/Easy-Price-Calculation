@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -24,11 +26,11 @@ class _OrientationLockState extends State<OrientationLock> {
     final tablet = isTablet(context);
     if (_appliedTablet == tablet) return;
     _appliedTablet = tablet;
-    SystemChrome.setPreferredOrientations(
+    unawaited(SystemChrome.setPreferredOrientations(
       tablet
           ? const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
           : const [DeviceOrientation.portraitUp],
-    );
+    ));
   }
 
   @override

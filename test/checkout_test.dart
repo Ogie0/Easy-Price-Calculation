@@ -229,4 +229,57 @@ void main() {
       });
     }
   }
+
+  testWidgets('Warenkorb leeren lässt sich rückgängig machen', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await press(tester, '1 0');
+    await tester.tap(find.byTooltip('Warenkorb leeren'));
+    await tester.pump();
+    expect(textOf(tester, 'cart-total'), '0,00 €');
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('Rückgängig'));
+    await tester.pump();
+    expect(textOf(tester, 'cart-total'), '5,00 €');
+    expect(textOf(tester, 'given-display'), '10 €');
+  });
+
+  testWidgets('Rückgängig nach neuer Buchung wird abgelehnt', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('complete')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('Pommes')); // nächster Kunde
+    await tester.pump(const Duration(milliseconds: 500)); // Meldung ganz eingeblendet
+
+    await tester.tap(find.text('Rückgängig'));
+    await tester.pump(const Duration(seconds: 1)); // alte Meldung geht, Hinweis kommt
+    await tester.pump(const Duration(seconds: 1));
+    expect(textOf(tester, 'cart-total'), '3,00 €');
+    expect(find.textContaining('nicht möglich'), findsOneWidget);
+  });
+
+  testWidgets('Taste 00 und Auszahlung beim Abschließen', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+
+    await press(tester, '5 00');
+    expect(textOf(tester, 'given-display'), '500 €');
+    await press(tester, 'C');
+
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pfandrückgabe'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('complete')));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Abgeschlossen – Auszahlung 2,00 €'), findsOneWidget);
+  });
 }

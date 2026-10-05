@@ -6,6 +6,7 @@ import '../providers/checkout_provider.dart';
 import '../utils/haptics.dart';
 import '../utils/money.dart';
 import 'amount_row.dart';
+import 'undo_snack_bar.dart';
 
 /// Bargeldeingabe per Ziffernblock, große Rückgeldanzeige und Abschluss.
 class CheckoutPanel extends StatelessWidget {
@@ -20,7 +21,6 @@ class CheckoutPanel extends StatelessWidget {
   void _complete(BuildContext context, PaymentStatus status) {
     final cart = context.read<CartProvider>();
     final checkout = context.read<CheckoutProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final items = List.of(cart.items);
     final input = checkout.input;
 
@@ -34,20 +34,7 @@ class CheckoutPanel extends StatelessWidget {
       PaymentState.payout => 'Abgeschlossen – Auszahlung ${formatCents(status.cents)}',
       _ => 'Abgeschlossen',
     };
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 5),
-        persist: false,
-        action: SnackBarAction(
-          label: 'Rückgängig',
-          onPressed: () {
-            cart.restore(items);
-            checkout.restoreInput(input);
-          },
-        ),
-      ));
+    showUndoSnackBar(context, message: message, items: items, input: input);
     onCompleted?.call();
   }
 
@@ -118,7 +105,8 @@ class _ChangeDisplay extends StatelessWidget {
       PaymentState.awaitingCash => ('Rückgeld', scheme.surfaceContainerHighest, scheme.onSurfaceVariant),
       PaymentState.change => ('Rückgeld', scheme.primary, scheme.onPrimary),
       PaymentState.missing => ('Es fehlen', scheme.errorContainer, scheme.onErrorContainer),
-      PaymentState.payout => ('Auszahlung', Colors.orange.shade700, Colors.white),
+      // Dunkles Orange: genug Kontrast für weiße Schrift (ca. 5:1).
+      PaymentState.payout => ('Auszahlung', const Color(0xFFB45309), Colors.white),
     };
 
     return AmountRow(

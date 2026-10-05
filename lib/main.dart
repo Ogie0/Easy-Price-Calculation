@@ -12,7 +12,13 @@ import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final storage = await CatalogStorage.open();
+  CatalogStorage? storage;
+  try {
+    storage = await CatalogStorage.open();
+  } on Object catch (e) {
+    // Ohne Speicher läuft die Kasse mit den Standardpreisen weiter.
+    debugPrint('Speicher nicht verfügbar: $e');
+  }
   runApp(KassenRoot(storage: storage));
 }
 
