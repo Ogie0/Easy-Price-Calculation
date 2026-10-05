@@ -1,23 +1,11 @@
 import 'package:easy_price_calculation/main.dart';
-import 'package:easy_price_calculation/providers/cart_provider.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/widgets/cart_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
-Widget buildApp() {
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => CatalogProvider()),
-      ChangeNotifierProxyProvider<CatalogProvider, CartProvider>(
-        create: (context) => CartProvider(context.read<CatalogProvider>()),
-        update: (_, catalog, cart) => cart!..updateCatalog(catalog),
-      ),
-    ],
-    child: const KassenApp(),
-  );
-}
+Widget buildApp() => const KassenRoot();
 
 void setScreen(WidgetTester tester, Size size) {
   tester.view.physicalSize = size;

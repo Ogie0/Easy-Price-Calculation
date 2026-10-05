@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/article.dart';
 import '../providers/cart_provider.dart';
 import '../utils/money.dart';
+import 'article_icons.dart';
 
 /// Kachelraster der Artikel einer Kategorie. Tippen legt den Artikel in den
 /// Warenkorb, langes Drücken storniert die letzte Einheit.
@@ -20,7 +21,7 @@ class ArticleGrid extends StatelessWidget {
         maxCrossAxisExtent: 220,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.3,
+        childAspectRatio: 1,
       ),
       itemCount: articles.length,
       itemBuilder: (context, index) => ArticleTile(article: articles[index]),
@@ -53,7 +54,7 @@ class ArticleTile extends StatelessWidget {
             ),
             for (final v in article.variants)
               ListTile(
-                leading: const Icon(Icons.local_drink),
+                leading: Icon(iconFor(article)),
                 title: Text(v),
                 onTap: () => Navigator.pop(context, v),
               ),
@@ -67,45 +68,56 @@ class ArticleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = context.select<CartProvider, int>((c) => c.countOf(article.id));
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final selected = count > 0;
+    final foreground = selected ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Material(
-      color: count > 0 ? scheme.primaryContainer : scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(16),
+      color: selected ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         onTap: () => _add(context),
-        onLongPress: count > 0 ? () => context.read<CartProvider>().removeLastOf(article.id) : null,
+        onLongPress: selected ? () => context.read<CartProvider>().removeLastOf(article.id) : null,
         child: Stack(
           children: [
-            Center(
+            Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Flexible(
+                      child: FittedBox(
+                        child: Icon(iconFor(article), size: 64, color: foreground),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       article.name,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold, color: foreground),
                     ),
-                    const SizedBox(height: 4),
-                    Text(formatCents(article.priceCents)),
-                    if (article.hasDeposit)
-                      Text('+ Pfand', style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      article.hasDeposit
+                          ? '${formatCents(article.priceCents)} + Pfand'
+                          : formatCents(article.priceCents),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: foreground),
+                    ),
                   ],
                 ),
               ),
             ),
-            if (count > 0)
+            if (selected)
               Positioned(
                 top: 8,
                 right: 8,
                 child: CircleAvatar(
-                  radius: 14,
+                  radius: 16,
                   backgroundColor: scheme.primary,
                   child: Text(
                     '$count',

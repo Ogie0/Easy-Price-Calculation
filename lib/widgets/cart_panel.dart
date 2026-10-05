@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
+import '../screens/checkout_screen.dart';
 import '../utils/money.dart';
 
 /// Warenkorb mit Positionsliste, Pfandrückgabe und Gesamtsumme.
@@ -18,7 +19,7 @@ class CartPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
           child: Row(
             children: [
               Expanded(child: Text('Warenkorb', style: theme.textTheme.titleLarge)),
@@ -44,23 +45,26 @@ class CartPanel extends StatelessWidget {
         ),
         const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OutlinedButton.icon(
-                icon: const Icon(Icons.undo),
-                label: const Text('Pfandrückgabe'),
-                onPressed: cart.addDepositReturn,
-              ),
-              const SizedBox(height: 12),
+              const DepositReturnButton(),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Text('Summe', style: theme.textTheme.titleLarge),
-                  const Spacer(),
-                  Text(
-                    formatCents(cart.totalCents),
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FittedBox(
+                      alignment: Alignment.centerRight,
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formatCents(cart.totalCents),
+                        key: const ValueKey('cart-total'),
+                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -68,6 +72,20 @@ class CartPanel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class DepositReturnButton extends StatelessWidget {
+  const DepositReturnButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+      icon: const Icon(Icons.recycling),
+      label: const Text('Pfandrückgabe'),
+      onPressed: context.read<CartProvider>().addDepositReturn,
     );
   }
 }
@@ -103,21 +121,9 @@ class _CartItemTile extends StatelessWidget {
   }
 }
 
-/// Kompakte Leiste für Smartphones: Summe und Zugriff auf den Warenkorb.
+/// Leiste für Smartphones: Live-Summe, Pfandrückgabe und Weg zur Kasse.
 class CartSummaryBar extends StatelessWidget {
   const CartSummaryBar({super.key});
-
-  void _openCart(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.8,
-        child: const SafeArea(child: CartPanel()),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,27 +135,52 @@ class CartSummaryBar extends StatelessWidget {
       color: theme.colorScheme.secondaryContainer,
       child: SafeArea(
         top: false,
-        child: InkWell(
-          onTap: () => _openCart(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Badge(
-                  isLabelVisible: count > 0,
-                  label: Text('$count'),
-                  child: const Icon(Icons.shopping_cart),
-                ),
-                const SizedBox(width: 16),
-                Text('Warenkorb', style: theme.textTheme.titleMedium),
-                const Spacer(),
-                Text(
-                  formatCents(cart.totalCents),
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const Icon(Icons.expand_less),
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Badge(
+                    isLabelVisible: count > 0,
+                    label: Text('$count'),
+                    child: const Icon(Icons.shopping_cart),
+                  ),
+                  const SizedBox(width: 16),
+                  Text('Summe', style: theme.textTheme.titleMedium),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FittedBox(
+                      alignment: Alignment.centerRight,
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formatCents(cart.totalCents),
+                        key: const ValueKey('cart-total'),
+                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(child: DepositReturnButton()),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                      icon: const Icon(Icons.point_of_sale),
+                      label: const Text('Kasse'),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

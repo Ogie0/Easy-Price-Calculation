@@ -5,6 +5,7 @@ import '../providers/catalog_provider.dart';
 import '../utils/layout.dart';
 import '../widgets/article_grid.dart';
 import '../widgets/cart_panel.dart';
+import '../widgets/checkout_panel.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -46,9 +47,11 @@ class HomeScreen extends StatelessWidget {
         body: tablet
             ? Row(
                 children: [
-                  Expanded(child: tabView),
+                  Expanded(flex: 5, child: tabView),
                   const VerticalDivider(width: 1),
-                  const SizedBox(width: 380, child: SafeArea(left: false, child: CartPanel())),
+                  const Expanded(flex: 3, child: CartPanel()),
+                  const VerticalDivider(width: 1),
+                  const Expanded(flex: 3, child: SafeArea(left: false, child: CheckoutPanel())),
                 ],
               )
             : tabView,
