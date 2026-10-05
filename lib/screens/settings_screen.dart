@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/article.dart';
 import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
+import '../widgets/article_emoji.dart';
 
 /// Anpassung aller Artikelpreise und des Pfandwerts. Änderungen werden
 /// sofort übernommen, sobald die Eingabe gültig ist.
@@ -28,7 +29,7 @@ class SettingsScreen extends StatelessWidget {
                 const _SectionHeader('Pfand'),
                 _PriceRow(
                   label: 'Pfandwert',
-                  icon: Icons.recycling,
+                  emoji: kDepositEmoji,
                   initialCents: catalog.depositCents,
                   onChanged: catalog.setDeposit,
                 ),
@@ -48,7 +49,7 @@ class SettingsScreen extends StatelessWidget {
     return _PriceRow(
       key: ValueKey(article.id),
       label: article.name,
-      icon: article.category == ArticleCategory.food ? Icons.restaurant : Icons.local_bar,
+      emoji: emojiFor(article),
       initialCents: article.priceCents,
       onChanged: (cents) => catalog.setPrice(article.id, cents),
     );
@@ -77,14 +78,14 @@ class _SectionHeader extends StatelessWidget {
 
 class _PriceRow extends StatefulWidget {
   final String label;
-  final IconData icon;
+  final String emoji;
   final int initialCents;
   final ValueChanged<int> onChanged;
 
   const _PriceRow({
     super.key,
     required this.label,
-    required this.icon,
+    required this.emoji,
     required this.initialCents,
     required this.onChanged,
   });
@@ -124,7 +125,7 @@ class _PriceRowState extends State<_PriceRow> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(widget.icon),
+      leading: Text(widget.emoji, style: const TextStyle(fontSize: 24)),
       title: Text(widget.label),
       trailing: SizedBox(
         width: 120,

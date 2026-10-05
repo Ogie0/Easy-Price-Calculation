@@ -33,6 +33,18 @@ void main() {
     expect(cart.totalCents, 300);
   });
 
+  test('Anzeige: neueste zuerst, Pfand direkt unter dem Getränk', () {
+    cart
+      ..addArticle(catalog.articleById('wasser'))
+      ..addArticle(catalog.articleById('pommes'))
+      ..addArticle(catalog.articleById('softdrink'))
+      ..addDepositReturn();
+    expect(
+      cart.itemsNewestFirst.map((i) => i.label),
+      ['Pfandrückgabe', 'Softdrink', 'Pfand', 'Pommes', 'Wasser', 'Pfand'],
+    );
+  });
+
   test('Pfandrückgabe nutzt aktuellen Pfandwert', () {
     catalog.setDeposit(300);
     cart.addDepositReturn();

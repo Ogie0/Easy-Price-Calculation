@@ -1,4 +1,6 @@
 import 'package:easy_price_calculation/main.dart';
+import 'package:easy_price_calculation/providers/cart_provider.dart';
+import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/providers/checkout_provider.dart';
 import 'package:easy_price_calculation/screens/checkout_screen.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +56,25 @@ void main() {
       expect(c.input, '20');
     });
 
+    test('Leerer Warenkorb löscht die Bargeldeingabe', () {
+      final catalog = CatalogProvider();
+      final cart = CartProvider(catalog);
+      final checkout = CheckoutProvider(cart: cart);
+
+      cart.addArticle(catalog.articleById('steak'));
+      checkout.pressDigit(2);
+      cart.addArticle(catalog.articleById('pommes'));
+      expect(checkout.givenCents, 200, reason: 'Hinzufügen löscht nichts');
+
+      cart.clear();
+      expect(checkout.givenCents, isNull);
+
+      cart.addArticle(catalog.articleById('steak'));
+      checkout.pressDigit(5);
+      cart.removeLastOf('steak');
+      expect(checkout.givenCents, isNull, reason: 'letzte Position storniert');
+    });
+
     test('PaymentStatus', () {
       expect(PaymentStatus.of(totalCents: 450, givenCents: null).state, PaymentState.awaitingCash);
       final change = PaymentStatus.of(totalCents: 450, givenCents: 1000);
@@ -91,8 +112,24 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('complete')));
     await tester.pump();
     expect(textOf(tester, 'cart-total'), '0,00 €');
-    expect(textOf(tester, 'given-display'), '–');
+    expect(textOf(tester, 'given-display'), '0,00 €');
+    expect(textOf(tester, 'change-display'), '0,00 €');
     expect(find.text('Abgeschlossen – Rückgeld 5,50 €'), findsOneWidget);
+  });
+
+  testWidgets('Tablet: Warenkorb leeren löscht auch das Bargeld', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(const KassenRoot());
+
+    await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await press(tester, '2 0');
+    expect(textOf(tester, 'given-display'), '20 €');
+
+    await tester.tap(find.byTooltip('Warenkorb leeren'));
+    await tester.pump();
+    expect(textOf(tester, 'given-display'), '0,00 €');
+    expect(textOf(tester, 'change-display'), '0,00 €');
   });
 
   testWidgets('Tablet: reine Pfandrückgabe wird ausgezahlt', (tester) async {
@@ -135,5 +172,42 @@ void main() {
       expect(find.byType(CheckoutScreen), findsNothing);
       expect(textOf(tester, 'cart-total'), '0,00 €');
     });
+  }
+
+  // Smartphones inkl. Status- (24 dp) und Navigationsleiste (48 dp). Auf
+  // üblichen Geräten mind. 48 dp große Tasten, auf sehr kleinen etwas weniger;
+  // Summe und „Abschließen“ sind immer ohne Scrollen sichtbar.
+  for (final (size, minKey) in const [
+    (Size(412, 915), 48.0),
+    (Size(360, 780), 48.0),
+    (Size(360, 740), 48.0),
+    (Size(360, 640), 40.0),
+  ]) {
+    for (final textScale in const [1.0, 1.3]) {
+      testWidgets(
+          'Kasse ${size.width.toInt()}x${size.height.toInt()}, Schrift x$textScale: '
+          'Tasten mind. ${minKey.toInt()} dp', (tester) async {
+        tester.view
+          ..physicalSize = size * 2
+          ..devicePixelRatio = 2
+          ..padding = const FakeViewPadding(top: 24 * 2, bottom: 48 * 2);
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        await tester.pumpWidget(const KassenRoot());
+        await tester.tap(find.text('Bratwurst'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Kasse'));
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.getSize(find.byKey(const ValueKey('numpad-5'))).height,
+          greaterThanOrEqualTo(minKey),
+        );
+        expect(find.byKey(const ValueKey('cart-total')).hitTestable(), findsOneWidget);
+        expect(find.byKey(const ValueKey('complete')).hitTestable(), findsOneWidget);
+      });
+    }
   }
 }

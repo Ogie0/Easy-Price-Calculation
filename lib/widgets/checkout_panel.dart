@@ -4,13 +4,17 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/checkout_provider.dart';
 import '../utils/money.dart';
+import 'amount_row.dart';
 
 /// Bargeldeingabe per Ziffernblock, große Rückgeldanzeige und Abschluss.
 class CheckoutPanel extends StatelessWidget {
   /// Wird nach dem Abschließen aufgerufen (z. B. um den Screen zu schließen).
   final VoidCallback? onCompleted;
 
-  const CheckoutPanel({super.key, this.onCompleted});
+  /// Zeigt die Summe über „Gegeben“ (Smartphone).
+  final bool showTotal;
+
+  const CheckoutPanel({super.key, this.onCompleted, this.showTotal = false});
 
   void _complete(BuildContext context, PaymentStatus status) {
     final cart = context.read<CartProvider>();
@@ -39,40 +43,48 @@ class CheckoutPanel extends StatelessWidget {
     final status = PaymentStatus.of(totalCents: cart.totalCents, givenCents: checkout.givenCents);
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Text('Gegeben', style: theme.textTheme.titleLarge),
-              const Spacer(),
-              Text(
-                checkout.input.isEmpty ? '–' : '${checkout.input} €',
-                key: const ValueKey('given-display'),
-                style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+    // Die Beträge sind ohnehin groß; eine stark vergrößerte Systemschrift
+    // würde nur den Ziffernblock zusammendrücken.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showTotal) ...[
+              AmountRow(
+                label: 'Summe',
+                amount: formatCents(cart.totalCents),
+                amountKey: const ValueKey('cart-total'),
               ),
+              const SizedBox(height: 8),
             ],
-          ),
-          const SizedBox(height: 8),
-          _ChangeDisplay(status: status),
-          const SizedBox(height: 8),
-          _QuickAmounts(totalCents: cart.totalCents),
-          const SizedBox(height: 8),
-          const Expanded(child: Numpad()),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            key: const ValueKey('complete'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 56),
-              textStyle: theme.textTheme.titleLarge,
+            AmountRow(
+              label: 'Gegeben',
+              amount: checkout.input.isEmpty ? formatCents(0) : '${checkout.input} €',
+              amountKey: const ValueKey('given-display'),
+              muted: checkout.input.isEmpty,
             ),
-            icon: const Icon(Icons.check_circle),
-            label: const Text('Abschließen'),
-            onPressed: !cart.isEmpty && status.canComplete ? () => _complete(context, status) : null,
-          ),
-        ],
+            const SizedBox(height: 8),
+            _ChangeDisplay(status: status),
+            const SizedBox(height: 8),
+            _QuickAmounts(totalCents: cart.totalCents),
+            const SizedBox(height: 8),
+            const Expanded(child: Numpad()),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              key: const ValueKey('complete'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 56),
+                textStyle: theme.textTheme.titleLarge,
+              ),
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Abschließen'),
+              onPressed: !cart.isEmpty && status.canComplete ? () => _complete(context, status) : null,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -85,8 +97,7 @@ class _ChangeDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+    final scheme = Theme.of(context).colorScheme;
 
     final (label, background, foreground) = switch (status.state) {
       PaymentState.awaitingCash => ('Rückgeld', scheme.surfaceContainerHighest, scheme.onSurfaceVariant),
@@ -95,34 +106,13 @@ class _ChangeDisplay extends StatelessWidget {
       PaymentState.payout => ('Auszahlung', Colors.orange.shade700, Colors.white),
     };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          Flexible(
-            flex: 2,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(label, style: theme.textTheme.titleLarge?.copyWith(color: foreground)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: FittedBox(
-              alignment: Alignment.centerRight,
-              fit: BoxFit.scaleDown,
-              child: Text(
-                status.state == PaymentState.awaitingCash ? '–' : formatCents(status.cents),
-                key: const ValueKey('change-display'),
-                style: theme.textTheme.headlineMedium
-                    ?.copyWith(color: foreground, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return AmountRow(
+      label: label,
+      amount: formatCents(status.cents),
+      amountKey: const ValueKey('change-display'),
+      background: background,
+      foreground: foreground,
+      muted: status.state == PaymentState.awaitingCash,
     );
   }
 }

@@ -19,6 +19,19 @@ class CartProvider extends ChangeNotifier {
 
   List<CartItem> get items => List.unmodifiable(_items);
 
+  /// Positionen für die Anzeige: neueste zuerst, Pfand jeweils direkt unter
+  /// dem zugehörigen Getränk.
+  List<CartItem> get itemsNewestFirst {
+    final result = <CartItem>[];
+    for (final item in _items.reversed) {
+      if (item.type == CartItemType.deposit) continue;
+      result
+        ..add(item)
+        ..addAll(_items.where((d) => d.parentId == item.id));
+    }
+    return result;
+  }
+
   bool get isEmpty => _items.isEmpty;
 
   int get totalCents => _items.fold(0, (sum, item) => sum + item.priceCents);

@@ -5,10 +5,19 @@ import '../models/cart_item.dart';
 import '../providers/cart_provider.dart';
 import '../screens/checkout_screen.dart';
 import '../utils/money.dart';
+import 'amount_row.dart';
 
 /// Warenkorb mit Positionsliste und Gesamtsumme.
 class CartPanel extends StatelessWidget {
-  const CartPanel({super.key});
+  /// Zeigt die Überschrift „Warenkorb“ mit dem Leeren-Button. Auf dem
+  /// Kasse-Screen des Smartphones sitzt der Button stattdessen in der AppBar.
+  final bool showHeader;
+
+  /// Zeigt die Summe unter der Liste. Auf dem Smartphone steht sie
+  /// stattdessen im Kassierbereich direkt über „Gegeben“.
+  final bool showTotal;
+
+  const CartPanel({super.key, this.showHeader = true, this.showTotal = true});
 
   @override
   Widget build(BuildContext context) {
@@ -18,58 +27,54 @@ class CartPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-          child: Row(
-            children: [
-              Expanded(child: Text('Warenkorb', style: theme.textTheme.titleLarge)),
-              IconButton(
-                tooltip: 'Warenkorb leeren',
-                icon: const Icon(Icons.delete_sweep),
-                onPressed: cart.isEmpty ? null : cart.clear,
-              ),
-            ],
+        if (showHeader) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+            child: Row(
+              children: [
+                Expanded(child: Text('Warenkorb', style: theme.textTheme.titleLarge)),
+                const ClearCartButton(),
+              ],
+            ),
           ),
-        ),
-        const Divider(height: 1),
+          const Divider(height: 1),
+        ],
         Expanded(
           child: cart.isEmpty
               ? const Center(child: Text('Noch keine Artikel'))
-              : ListView.builder(
-                  itemCount: cart.items.length,
-                  itemBuilder: (context, index) {
-                    final item = cart.items[cart.items.length - 1 - index];
-                    return _CartItemTile(item: item);
-                  },
+              : ListView(
+                  children: [
+                    for (final item in cart.itemsNewestFirst) _CartItemTile(item: item),
+                  ],
                 ),
         ),
-        const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Text('Summe', style: theme.textTheme.titleLarge),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FittedBox(
-                      alignment: Alignment.centerRight,
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        formatCents(cart.totalCents),
-                        key: const ValueKey('cart-total'),
-                        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        if (showTotal) ...[
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: AmountRow(
+              label: 'Summe',
+              amount: formatCents(cart.totalCents),
+              amountKey: const ValueKey('cart-total'),
+            ),
           ),
-        ),
+        ],
       ],
+    );
+  }
+}
+
+/// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft.
+class ClearCartButton extends StatelessWidget {
+  const ClearCartButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
+    return IconButton(
+      tooltip: 'Warenkorb leeren',
+      icon: const Icon(Icons.delete_sweep),
+      onPressed: isEmpty ? null : context.read<CartProvider>().clear,
     );
   }
 }

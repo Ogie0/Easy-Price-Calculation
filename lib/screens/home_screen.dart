@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
 import '../utils/layout.dart';
 import '../widgets/article_grid.dart';
@@ -11,9 +13,39 @@ import 'settings_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const _tabBar = TabBar(
+    tabs: [
+      Tab(icon: Icon(Icons.restaurant), text: 'Speisen'),
+      Tab(icon: Icon(Icons.local_bar), text: 'Getränke'),
+    ],
+  );
+
+  /// Fragt nach, bevor die App mit gefülltem Warenkorb geschlossen wird.
+  Future<void> _confirmClose(BuildContext context) async {
+    final close = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('App schließen?'),
+        content: const Text('Im Warenkorb liegen noch Artikel. Sie gehen beim Schließen verloren.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Schließen'),
+          ),
+        ],
+      ),
+    );
+    if (close ?? false) await SystemNavigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogProvider>();
+    final cartIsEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
     final tablet = isTablet(context);
 
     final tabView = TabBarView(
@@ -23,39 +55,49 @@ class HomeScreen extends StatelessWidget {
       ],
     );
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('JGC Preisrechner'),
-          actions: [
-            IconButton(
-              tooltip: 'Einstellungen',
-              icon: const Icon(Icons.settings),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+    return PopScope(
+      canPop: cartIsEmpty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmClose(context);
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('JGC Preisrechner'),
+            actions: [
+              IconButton(
+                tooltip: 'Einstellungen',
+                icon: const Icon(Icons.settings),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+                ),
               ),
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.restaurant), text: 'Speisen'),
-              Tab(icon: Icon(Icons.local_bar), text: 'Getränke'),
             ],
+            // Auf dem Tablet sitzt die Tab-Leiste nur über den Kacheln.
+            bottom: tablet ? null : _tabBar,
           ),
+          body: tablet
+              ? Row(
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        children: [
+                          _tabBar,
+                          Expanded(child: tabView),
+                        ],
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    const Expanded(flex: 3, child: CartPanel()),
+                    const VerticalDivider(width: 1),
+                    const Expanded(flex: 3, child: SafeArea(left: false, child: CheckoutPanel())),
+                  ],
+                )
+              : tabView,
+          bottomNavigationBar: tablet ? null : const CartSummaryBar(),
         ),
-        body: tablet
-            ? Row(
-                children: [
-                  Expanded(flex: 5, child: tabView),
-                  const VerticalDivider(width: 1),
-                  const Expanded(flex: 3, child: CartPanel()),
-                  const VerticalDivider(width: 1),
-                  const Expanded(flex: 3, child: SafeArea(left: false, child: CheckoutPanel())),
-                ],
-              )
-            : tabView,
-        bottomNavigationBar: tablet ? null : const CartSummaryBar(),
       ),
     );
   }

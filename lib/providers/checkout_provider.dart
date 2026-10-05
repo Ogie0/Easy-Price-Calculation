@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../utils/money.dart';
+import 'cart_provider.dart';
 
 enum PaymentState { awaitingCash, change, missing, payout }
 
@@ -26,11 +27,28 @@ class PaymentStatus {
   }
 }
 
-/// Eingabe des gegebenen Bargelds über den Ziffernblock.
+/// Eingabe des gegebenen Bargelds über den Ziffernblock. Mit [cart] wird
+/// die Eingabe automatisch gelöscht, sobald der Warenkorb leer ist
+/// (Abschließen, Leeren oder letzte Position storniert).
 class CheckoutProvider extends ChangeNotifier {
   static final _validInput = RegExp(r'^\d{1,4}(,\d{0,2})?$');
 
+  final CartProvider? _cart;
   String _input = '';
+
+  CheckoutProvider({CartProvider? cart}) : _cart = cart {
+    _cart?.addListener(_onCartChanged);
+  }
+
+  void _onCartChanged() {
+    if (_cart!.isEmpty) reset();
+  }
+
+  @override
+  void dispose() {
+    _cart?.removeListener(_onCartChanged);
+    super.dispose();
+  }
 
   /// Rohe Eingabe, z. B. "20" oder "12,5".
   String get input => _input;

@@ -29,7 +29,9 @@ class KassenRoot extends StatelessWidget {
           create: (context) => CartProvider(context.read<CatalogProvider>()),
           update: (_, catalog, cart) => cart!..updateCatalog(catalog),
         ),
-        ChangeNotifierProvider(create: (_) => CheckoutProvider()),
+        ChangeNotifierProvider(
+          create: (context) => CheckoutProvider(cart: context.read<CartProvider>()),
+        ),
       ],
       child: const KassenApp(),
     );

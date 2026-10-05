@@ -73,4 +73,72 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('3,20 €'), findsOneWidget);
   });
+
+  testWidgets('Tablet: Tab-Leiste nur über den Kacheln', (tester) async {
+    setScreen(tester, const Size(1280, 800));
+    await tester.pumpWidget(buildApp());
+
+    final tabBar = tester.getRect(find.byType(TabBar));
+    final cart = tester.getRect(find.byType(CartPanel));
+    expect(tabBar.right, lessThanOrEqualTo(cart.left));
+  });
+
+  const drinks = ['Wasser', 'Softdrink', 'Longdrink', 'Sekt', 'Shot', 'Pfandrückgabe'];
+
+  for (final size in const [Size(1024, 768), Size(1280, 800)]) {
+    testWidgets('Tablet ${size.width.toInt()}: alle Getränke ohne Scrollen sichtbar',
+        (tester) async {
+      setScreen(tester, size);
+      await tester.pumpWidget(buildApp());
+      await tester.tap(find.text('Getränke'));
+      await tester.pumpAndSettle();
+
+      for (final name in drinks) {
+        expect(find.text(name).hitTestable(), findsOneWidget, reason: name);
+      }
+    });
+  }
+
+  testWidgets('Smartphone mit System-Leisten: alle Getränke ohne Scrollen sichtbar',
+      (tester) async {
+    tester.view
+      ..physicalSize = const Size(360, 780) * 2
+      ..devicePixelRatio = 2
+      ..padding = const FakeViewPadding(top: 24 * 2, bottom: 48 * 2);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
+
+    for (final name in drinks) {
+      expect(find.text(name).hitTestable(), findsOneWidget, reason: name);
+    }
+  });
+
+  test('Kachelraster: größte Kacheln, die noch ganz passen', () {
+    // Smartphone hoch: 2 Spalten x 3 Reihen.
+    final phone = GridFit.of(6, const Size(360, 470), padding: 12, spacing: 12);
+    expect(phone.columns, 2);
+    // Kaum Platz: lieber scrollen als winzige Kacheln.
+    final tiny = GridFit.of(6, const Size(360, 200), padding: 12, spacing: 12);
+    expect((tiny.columns, tiny.aspectRatio), (2, 1.0));
+    // Unbegrenzte Höhe (z. B. in einer Scroll-Ansicht) bricht nicht.
+    expect(GridFit.of(6, const Size(360, double.infinity), padding: 12, spacing: 12).columns, 2);
+  });
+
+  testWidgets('Zurück-Taste fragt bei gefülltem Warenkorb nach', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.text('Bratwurst'));
+    await tester.pump();
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('App schließen?'), findsOneWidget);
+
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
+    expect(find.text('App schließen?'), findsNothing);
+    expect(find.text('Bratwurst'), findsOneWidget);
+  });
 }
