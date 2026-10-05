@@ -1,4 +1,4 @@
-# JGC Ellierode
+# Knülle Kalkulieren - JGC
 
 Offline-Kassen-App des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android). Speisen und Getränke
 per Kachel buchen, automatische Pfandposten, Pfandrückgabe, Rückgeldrechner
@@ -9,7 +9,7 @@ protokolliert, die App braucht kein Internet.
 ## APK installieren
 
 Jeder Push baut über GitHub Actions eine neue APK. Die neueste liegt unter
-**Releases → „JGC Ellierode …“** (`JGC-Ellierode.apk`) und kann direkt
+**Releases → „Knülle Kalkulieren - JGC …“** (`Knuelle-Kalkulieren-JGC.apk`) und kann direkt
 auf dem Smartphone heruntergeladen und installiert werden.
 
 ## Entwicklung

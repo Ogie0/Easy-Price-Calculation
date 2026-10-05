@@ -71,7 +71,14 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Image.asset(kClubLogo, height: 40),
                 const SizedBox(width: 12),
-                const Flexible(child: Text('JGC Ellierode', overflow: TextOverflow.ellipsis)),
+                // Langer Name: lieber etwas kleiner als abgeschnitten.
+                const Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(kAppName),
+                  ),
+                ),
               ],
             ),
             actions: [

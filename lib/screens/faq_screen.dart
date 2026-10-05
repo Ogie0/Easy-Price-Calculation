@@ -127,7 +127,7 @@ class FaqScreen extends StatelessWidget {
                 title: const Text('Open-Source-Lizenzen'),
                 onTap: () => showLicensePage(
                   context: context,
-                  applicationName: 'JGC Ellierode',
+                  applicationName: kAppName,
                   applicationVersion: kAppVersion,
                   applicationIcon: Padding(
                     padding: const EdgeInsets.all(8),

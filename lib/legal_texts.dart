@@ -1,26 +1,25 @@
 /// Rechtliche Texte für den Bereich „Rechtliches“ im FAQ.
 ///
-/// TODO(Vorstand): Platzhalter in eckigen Klammern im Impressum ausfüllen.
 library;
 
 const String kImpressum = '''
 Angaben zum Herausgeber dieser App
 
 Junggesellenclub Ellierode v. 1960
-[Straße und Hausnummer]
-[PLZ] Ellierode
+Hüttenweg 3a
+37181 Ellierode
 
-Vertreten durch: [Vorname Nachname, Funktion]
-Kontakt: [E-Mail-Adresse]
+Vertreten durch: Timon Schütte, 1. Vorsitzender
+Kontakt: timon.schuette@gmail.com
 
-Verantwortlich für den Inhalt: [Vorname Nachname, Anschrift wie oben]
+Verantwortlich für den Inhalt: Timon Schütte, Anschrift wie oben
 
 Die App wird ausschließlich für die interne Nutzung bei Veranstaltungen des Clubs bereitgestellt und nicht kommerziell vertrieben.
 ''';
 
 const String kNutzungsbedingungen = '''
 1. Zweck
-Die App „JGC Ellierode“ ist ein Rechenhilfsmittel für den Verkauf bei Veranstaltungen des Junggesellenclubs Ellierode v. 1960. Sie berechnet Summen, Pfand und Rückgeld.
+Die App „Knülle Kalkulieren - JGC“ ist ein Rechenhilfsmittel für den Verkauf bei Veranstaltungen des Junggesellenclubs Ellierode v. 1960. Sie berechnet Summen, Pfand und Rückgeld.
 
 2. Nutzung
 Die App wird Mitgliedern und Helfern des Clubs kostenlos zur Verfügung gestellt. Eine Weitergabe an Dritte oder eine kommerzielle Nutzung ist nicht vorgesehen.

@@ -45,7 +45,7 @@ class KassenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JGC Ellierode',
+      title: kAppName,
       debugShowCheckedModeBanner: false,
       // Deutsche System-Texte (z. B. „Zurück“, „Einfügen“).
       locale: const Locale('de'),

@@ -232,6 +232,6 @@ void main() {
 
     await tester.tap(find.text('Open-Source-Lizenzen'));
     await tester.pumpAndSettle();
-    expect(find.text('JGC Ellierode'), findsWidgets);
+    expect(find.text('Knülle Kalkulieren - JGC'), findsWidgets);
   });
 }

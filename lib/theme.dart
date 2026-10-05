@@ -5,6 +5,8 @@ const Color kClubGreen = Color(0xFF026F40);
 
 const String kClubLogo = 'assets/logo/jgc_logo.png';
 
+const String kAppName = 'Knülle Kalkulieren - JGC';
+
 final ThemeData clubTheme = () {
   final scheme = ColorScheme.fromSeed(
     seedColor: kClubGreen,
