@@ -76,13 +76,15 @@ void main() {
     });
 
     test('PaymentStatus', () {
-      expect(PaymentStatus.of(totalCents: 450, givenCents: null).state, PaymentState.awaitingCash);
+      final waiting = PaymentStatus.of(totalCents: 450, givenCents: null);
+      expect((waiting.state, waiting.canComplete), (PaymentState.awaitingCash, false));
+      expect(PaymentStatus.of(totalCents: 0, givenCents: null).canComplete, isTrue);
       final change = PaymentStatus.of(totalCents: 450, givenCents: 1000);
       expect((change.state, change.cents), (PaymentState.change, 550));
       final missing = PaymentStatus.of(totalCents: 450, givenCents: 200);
       expect((missing.state, missing.cents, missing.canComplete), (PaymentState.missing, 250, false));
       final payout = PaymentStatus.of(totalCents: -400, givenCents: null);
-      expect((payout.state, payout.cents), (PaymentState.payout, 400));
+      expect((payout.state, payout.cents, payout.canComplete), (PaymentState.payout, 400, true));
     });
   });
 
@@ -274,6 +276,8 @@ void main() {
     await tester.pumpWidget(const KassenRoot());
 
     await tester.tap(find.text('Steak'));
+    await tester.pump();
+    await tester.tap(find.text('Passend'));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('complete')));
     await tester.pump(const Duration(milliseconds: 500));

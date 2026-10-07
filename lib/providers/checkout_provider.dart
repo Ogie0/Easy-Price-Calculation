@@ -12,13 +12,15 @@ class PaymentStatus {
 
   const PaymentStatus(this.state, this.cents);
 
-  bool get canComplete => state != PaymentState.missing;
+  /// Abschließen erst, wenn das Bargeld eingegeben ist (oder „Passend“).
+  /// Ohne Eingabe nur, wenn nichts zu zahlen ist, z. B. bei einer Auszahlung.
+  bool get canComplete => state == PaymentState.change || state == PaymentState.payout;
 
   factory PaymentStatus.of({required int totalCents, required int? givenCents}) {
     if (givenCents == null) {
-      return totalCents < 0
-          ? PaymentStatus(PaymentState.payout, -totalCents)
-          : const PaymentStatus(PaymentState.awaitingCash, 0);
+      if (totalCents < 0) return PaymentStatus(PaymentState.payout, -totalCents);
+      if (totalCents == 0) return const PaymentStatus(PaymentState.change, 0);
+      return const PaymentStatus(PaymentState.awaitingCash, 0);
     }
     final diff = givenCents - totalCents;
     return diff >= 0

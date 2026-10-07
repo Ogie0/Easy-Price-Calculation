@@ -482,4 +482,69 @@ void main() {
     expect(rebuilt, isNot(contains(CheckoutPanel)));
     expect(rebuilt, isNot(contains(Numpad)));
   });
+
+  testWidgets('Smartphone: Abschließen erst nach Bargeldeingabe', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    await tester.tap(find.widgetWithText(ArticleTile, 'Bratwurst'));
+    await tester.pump();
+    await tester.tap(find.text('Kasse'));
+    await tester.pumpAndSettle();
+
+    ButtonStyleButton complete() =>
+        tester.widget<ButtonStyleButton>(find.byKey(const ValueKey('complete')));
+    expect(complete().enabled, isFalse);
+    await tester.tap(find.text('Passend'));
+    await tester.pump();
+    expect(complete().enabled, isTrue);
+  });
+
+  testWidgets('Smartphone: „Alle löschen“ neben Kasse, mit Rückgängig', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    final clearAll = find.byKey(const ValueKey('clear-all'));
+    expect(tester.widget<ButtonStyleButton>(clearAll).enabled, isFalse);
+
+    await tester.tap(find.widgetWithText(ArticleTile, 'Bratwurst'));
+    await tester.tap(find.widgetWithText(ArticleTile, 'Steak'));
+    await tester.pump();
+    await tester.tap(clearAll);
+    await tester.pump();
+    expect(tester.widget<Text>(find.byKey(const ValueKey('cart-total'))).data, '0,00 €');
+
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('Rückgängig'));
+    await tester.pump();
+    expect(tester.widget<Text>(find.byKey(const ValueKey('cart-total'))).data, '8,00 €');
+  });
+
+  testWidgets('Wischen zwischen Speisen und Getränken lässt sich sperren', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    Future<void> swipeLeft() async {
+      await tester.fling(find.byType(TabBarView), const Offset(-300, 0), 1000);
+      await tester.pumpAndSettle();
+    }
+
+    await swipeLeft();
+    expect(find.text('Bier'), findsOneWidget, reason: 'Wischen ist anfangs erlaubt');
+    await tester.tap(find.text('Speisen'));
+    await tester.pumpAndSettle();
+
+    await openSettings(tester);
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    final toggle = find.byKey(const ValueKey('swipe-tabs'));
+    await tester.scrollUntilVisible(toggle.hitTestable(), 300, scrollable: settingsList);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+
+    await swipeLeft();
+    expect(find.text('Bier'), findsNothing, reason: 'gesperrt: bleibt bei Speisen');
+    await tester.tap(find.text('Getränke'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bier'), findsOneWidget, reason: 'Reiter funktionieren weiter');
+  });
 }

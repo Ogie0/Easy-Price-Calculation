@@ -11,6 +11,7 @@ class AppStorage {
   static const _articlesKey = 'articles_v2';
   static const _depositKey = 'deposit_cents';
   static const _themeModeKey = 'theme_mode';
+  static const _swipeTabsKey = 'swipe_tabs';
 
   /// Ältere Versionen haben nur die Preise einzeln gespeichert.
   static const _legacyPricePrefix = 'price_cents_';
@@ -59,4 +60,8 @@ class AppStorage {
   String? loadThemeMode() => _prefs.getString(_themeModeKey);
 
   Future<void> saveThemeMode(String name) => _prefs.setString(_themeModeKey, name);
+
+  bool? loadSwipeTabs() => _prefs.getBool(_swipeTabsKey);
+
+  Future<void> saveSwipeTabs(bool value) => _prefs.setBool(_swipeTabsKey, value);
 }

@@ -47,8 +47,9 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Was passiert bei „Abschließen“?',
-      'Der Warenkorb wird für den nächsten Kunden geleert. Ohne eingegebenes Bargeld gilt der '
-          'Betrag als passend bezahlt. Vertippt? Unten erscheint kurz „Rückgängig“ – ein Tipp '
+      'Der Warenkorb wird für den nächsten Kunden geleert. Vorher muss das gegebene Geld '
+          'eingetippt sein – bei genau passendem Betrag einfach „Passend“ tippen. Nur bei einer '
+          'reinen Auszahlung (z. B. Pfandrückgabe) geht es ohne Eingabe. Vertippt? Unten erscheint kurz „Rückgängig“ – ein Tipp '
           'darauf holt den letzten Kauf zurück.',
     ),
     (

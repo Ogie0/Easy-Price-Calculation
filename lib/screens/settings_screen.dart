@@ -12,7 +12,7 @@ import 'reorder_screen.dart';
 
 /// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
 /// pro Artikel, Reihenfolge der Kacheln, eigene Positionen anlegen,
-/// bearbeiten und löschen; dazu die Darstellung (hell/dunkel). Änderungen
+/// bearbeiten und löschen; dazu Darstellung (hell/dunkel) und Wischen. Änderungen
 /// gelten sofort und werden gespeichert.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -84,6 +84,7 @@ class SettingsScreen extends StatelessWidget {
                 ],
                 const _SectionHeader('Darstellung'),
                 const _ThemeModeSetting(),
+                const _SwipeTabsSetting(),
                 const Divider(height: 32),
                 const ListTile(
                   leading: Icon(Icons.info_outline),
@@ -123,6 +124,24 @@ class _SectionHeader extends StatelessWidget {
           ?action,
         ],
       ),
+    );
+  }
+}
+
+/// Wischen zwischen Speisen und Getränken erlauben oder sperren.
+class _SwipeTabsSetting extends StatelessWidget {
+  const _SwipeTabsSetting();
+
+  @override
+  Widget build(BuildContext context) {
+    final swipe = context.select<AppearanceProvider, bool>((a) => a.swipeTabs);
+    return SwitchListTile(
+      key: const ValueKey('swipe-tabs'),
+      secondary: const Icon(Icons.swipe),
+      title: const Text('Wischen zwischen Speisen und Getränken'),
+      subtitle: Text(swipe ? 'An' : 'Aus – Wechsel nur über die Reiter oben'),
+      value: swipe,
+      onChanged: context.read<AppearanceProvider>().setSwipeTabs,
     );
   }
 }

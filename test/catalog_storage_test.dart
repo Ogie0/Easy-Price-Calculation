@@ -154,8 +154,12 @@ void main() {
     expect(first.themeMode, ThemeMode.system);
     first.setThemeMode(ThemeMode.dark);
 
+    expect(first.swipeTabs, isTrue);
+    first.setSwipeTabs(false);
+
     final restarted = AppearanceProvider(storage: await AppStorage.open());
     expect(restarted.themeMode, ThemeMode.dark);
+    expect(restarted.swipeTabs, isFalse);
 
     SharedPreferences.setMockInitialValues({'theme_mode': 'unbekannt'});
     final fallback = AppearanceProvider(storage: await AppStorage.open());

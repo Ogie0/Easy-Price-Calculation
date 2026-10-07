@@ -74,7 +74,10 @@ class CartPanel extends StatelessWidget {
 /// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft. Ein
 /// versehentliches Leeren lässt sich über „Rückgängig“ zurückholen.
 class ClearCartButton extends StatelessWidget {
-  const ClearCartButton({super.key});
+  /// Großer Button mit Beschriftung (Smartphone, neben „Kasse“) statt Symbol.
+  final bool large;
+
+  const ClearCartButton({super.key, this.large = false});
 
   void _clear(BuildContext context) {
     final cart = context.read<CartProvider>();
@@ -88,6 +91,20 @@ class ClearCartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
+    if (large) {
+      final error = Theme.of(context).colorScheme.error;
+      return OutlinedButton.icon(
+        key: const ValueKey('clear-all'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          foregroundColor: error,
+          side: BorderSide(color: isEmpty ? Theme.of(context).disabledColor : error),
+        ),
+        icon: const Icon(Icons.delete_sweep),
+        label: const FittedBox(child: Text('Alle löschen')),
+        onPressed: isEmpty ? null : () => _clear(context),
+      );
+    }
     return IconButton(
       tooltip: 'Warenkorb leeren',
       icon: const Icon(Icons.delete_sweep),
@@ -178,7 +195,13 @@ class CartSummaryBar extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const _CheckoutButton(),
+                const Row(
+                  children: [
+                    Expanded(flex: 2, child: _CheckoutButton()),
+                    SizedBox(width: 8),
+                    Expanded(child: ClearCartButton(large: true)),
+                  ],
+                ),
               ],
             ),
           ),

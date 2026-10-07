@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/appearance_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/catalog_provider.dart';
 import '../theme.dart';
@@ -31,8 +32,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final catalog = context.watch<CatalogProvider>();
     final tablet = isTablet(context);
+    final swipe = context.select<AppearanceProvider, bool>((a) => a.swipeTabs);
 
     final tabView = TabBarView(
+      physics: swipe ? null : const NeverScrollableScrollPhysics(),
       children: [
         ArticleGrid(articles: catalog.food, showFreeAmount: true),
         ArticleGrid(
