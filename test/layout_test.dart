@@ -508,7 +508,17 @@ void main() {
     await tester.tap(find.widgetWithText(ArticleTile, 'Bratwurst'));
     await tester.tap(find.widgetWithText(ArticleTile, 'Steak'));
     await tester.pump();
+    // Abbrechen lässt alles, wie es ist.
     await tester.tap(clearAll);
+    await tester.pumpAndSettle();
+    expect(find.text('Warenkorb leeren?'), findsOneWidget);
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(find.byKey(const ValueKey('cart-total'))).data, '8,00 €');
+
+    await tester.tap(clearAll);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-clear')));
     await tester.pump();
     expect(tester.widget<Text>(find.byKey(const ValueKey('cart-total'))).data, '0,00 €');
 

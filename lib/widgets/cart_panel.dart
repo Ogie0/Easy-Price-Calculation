@@ -71,19 +71,49 @@ class CartPanel extends StatelessWidget {
   }
 }
 
-/// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft. Ein
-/// versehentliches Leeren lässt sich über „Rückgängig“ zurückholen.
+/// Gleiche Schrift für „Kasse“ und „Alle löschen“.
+TextStyle? _barButtonTextStyle(BuildContext context) =>
+    Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
+
+/// Leert den Warenkorb, z. B. wenn ein Kunde doch nichts kauft. Vorher
+/// kommt eine Sicherheitsabfrage; danach lässt es sich noch über
+/// „Rückgängig“ zurückholen.
 class ClearCartButton extends StatelessWidget {
   /// Großer Button mit Beschriftung (Smartphone, neben „Kasse“) statt Symbol.
   final bool large;
 
   const ClearCartButton({super.key, this.large = false});
 
-  void _clear(BuildContext context) {
+  Future<void> _clear(BuildContext context) async {
     final cart = context.read<CartProvider>();
+    tapFeedback();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Warenkorb leeren?'),
+        content: Text(
+          'Alle Positionen (Summe ${formatCents(cart.totalCents)}) werden aus dem Warenkorb entfernt.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            key: const ValueKey('confirm-clear'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Alle löschen'),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !context.mounted || cart.isEmpty) return;
     final items = List.of(cart.items);
     final input = context.read<CheckoutProvider>().input;
-    tapFeedback();
     cart.clear();
     showUndoSnackBar(context, message: 'Warenkorb geleert', items: items, input: input);
   }
@@ -97,6 +127,7 @@ class ClearCartButton extends StatelessWidget {
         key: const ValueKey('clear-all'),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 48),
+          textStyle: _barButtonTextStyle(context),
           foregroundColor: error,
           side: BorderSide(color: isEmpty ? Theme.of(context).disabledColor : error),
         ),
@@ -197,7 +228,7 @@ class CartSummaryBar extends StatelessWidget {
                 const SizedBox(height: 8),
                 const Row(
                   children: [
-                    Expanded(flex: 2, child: _CheckoutButton()),
+                    Expanded(child: _CheckoutButton()),
                     SizedBox(width: 8),
                     Expanded(child: ClearCartButton(large: true)),
                   ],
@@ -221,7 +252,10 @@ class _CheckoutButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          textStyle: _barButtonTextStyle(context),
+        ),
         icon: const Icon(Icons.point_of_sale),
         label: const Text('Kasse'),
         onPressed: () => Navigator.of(context).push(

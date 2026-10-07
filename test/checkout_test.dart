@@ -148,7 +148,9 @@ void main() {
     expect(textOf(tester, 'given-display'), '20 €');
 
     await tester.tap(find.byTooltip('Warenkorb leeren'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-clear')));
+    await tester.pumpAndSettle();
     expect(textOf(tester, 'given-display'), '0,00 €');
     expect(textOf(tester, 'change-display'), '0,00 €');
   });
@@ -261,7 +263,9 @@ void main() {
     await tester.pump();
     await press(tester, '1 0');
     await tester.tap(find.byTooltip('Warenkorb leeren'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-clear')));
+    await tester.pumpAndSettle();
     expect(textOf(tester, 'cart-total'), '0,00 €');
 
     await tester.pump(const Duration(milliseconds: 500));
