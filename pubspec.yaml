@@ -12,6 +12,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  image_picker: ^1.2.4
+  path_provider: ^2.1.6
   provider: ^6.1.2
   shared_preferences: ^2.5.5
 
@@ -25,6 +27,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo/jgc_logo.png
+    - assets/articles/
 
 # App-Icon: nach Änderungen an assets/icon/ neu erzeugen mit
 #   dart run flutter_launcher_icons

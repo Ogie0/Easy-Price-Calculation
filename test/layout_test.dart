@@ -4,7 +4,12 @@ import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/screens/home_screen.dart';
 import 'package:easy_price_calculation/widgets/article_grid.dart';
 import 'package:easy_price_calculation/widgets/cart_panel.dart';
+import 'package:easy_price_calculation/services/article_image_store.dart';
+import 'package:easy_price_calculation/widgets/article_art.dart';
 import 'package:easy_price_calculation/widgets/checkout_panel.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -557,4 +562,73 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Bier/Radler'), findsOneWidget, reason: 'Reiter funktionieren weiter');
   });
+
+  testWidgets('Kacheln zeigen gezeichnete Bilder, auf Wunsch Emojis', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(buildApp());
+    Finder artOf(String name) =>
+        find.descendant(of: find.widgetWithText(ArticleTile, name), matching: find.byType(ArticleArtView));
+    Widget shown(String name) =>
+        tester.widget(find.descendant(of: artOf(name), matching: find.byWidgetPredicate((w) => w is Image || w is Text)).first);
+
+    expect(((shown('Bratwurst') as Image).image as AssetImage).assetName, 'assets/articles/bratwurst.png');
+
+    await openSettings(tester);
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    final toggle = find.byKey(const ValueKey('show-images'));
+    await tester.scrollUntilVisible(toggle.hitTestable(), 300, scrollable: settingsList);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+    expect((shown('Bratwurst') as Text).data, '🌭');
+  });
+
+  testWidgets('Eigenes Foto für eine Kachel und zurück zum Standardbild', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    final dir = Directory.systemTemp.createTempSync('fotos');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final store = _FakeImageStore(dir);
+    await tester.pumpWidget(KassenRoot(imageStore: store));
+    final catalog = Provider.of<CatalogProvider>(
+      tester.element(find.byType(Scaffold).first),
+      listen: false,
+    );
+
+    await openSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('image-bratwurst')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Foto aus der Galerie'));
+    await tester.pumpAndSettle();
+    final path = catalog.articleById('bratwurst').imagePath;
+    expect(path, isNotNull);
+    expect(store.sources, [ImageSource.gallery]);
+
+    await tester.tap(find.byKey(const ValueKey('image-bratwurst')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('image-reset')));
+    await tester.pumpAndSettle();
+    expect(catalog.articleById('bratwurst').imagePath, isNull);
+    expect(store.deleted, [path]);
+  });
+}
+
+class _FakeImageStore extends ArticleImageStore {
+  final Directory dir;
+  final sources = <ImageSource>[];
+  final deleted = <String?>[];
+
+  _FakeImageStore(this.dir);
+
+  @override
+  Future<String?> pick(String articleId, ImageSource source) async {
+    sources.add(source);
+    return '${dir.path}/$articleId.png';
+  }
+
+  @override
+  Future<void> delete(String? path) async {
+    if (path != null) deleted.add(path);
+  }
 }

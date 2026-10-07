@@ -9,7 +9,7 @@ import '../providers/catalog_provider.dart';
 import '../providers/quantity_provider.dart';
 import '../utils/haptics.dart';
 import '../utils/money.dart';
-import 'article_emoji.dart';
+import 'article_art.dart';
 import 'free_amount_dialog.dart';
 
 /// Kachelraster der Artikel einer Kategorie. Tippen legt den Artikel in den
@@ -128,7 +128,7 @@ class ArticleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final depositActive = context.select<CatalogProvider, bool>((c) => c.depositCents > 0);
     return _Tile(
-      emoji: emojiFor(article),
+      art: ArticleArt.of(article),
       title: article.name,
       subtitle: article.hasDeposit && depositActive
           ? '${formatCents(article.priceCents)} + Pfand'
@@ -153,7 +153,7 @@ class DepositReturnTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final deposit = context.select<CatalogProvider, int>((c) => c.depositCents);
     return _Tile(
-      emoji: kDepositEmoji,
+      art: kDepositArt,
       title: 'Pfandrückgabe',
       subtitle: formatCents(-deposit),
       count: _depositReturns,
@@ -182,7 +182,7 @@ class FreeAmountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Tile(
-      emoji: '💶',
+      art: kFreeAmountArt,
       title: 'Freier Betrag',
       subtitle: 'Betrag eingeben',
       count: _freeAmounts,
@@ -196,7 +196,7 @@ class FreeAmountTile extends StatelessWidget {
 /// Kachel wird nur neu gebaut, wenn sie aktiv wird oder nicht mehr aktiv ist,
 /// bei jedem weiteren Tipp nur die Zahl oben rechts.
 class _Tile extends StatelessWidget {
-  final String emoji;
+  final ArticleArt art;
   final String title;
   final String subtitle;
 
@@ -206,7 +206,7 @@ class _Tile extends StatelessWidget {
   final VoidCallback onLongPress;
 
   const _Tile({
-    required this.emoji,
+    required this.art,
     required this.title,
     required this.subtitle,
     required this.count,
@@ -246,13 +246,7 @@ class _Tile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      flex: 5,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(emoji, style: const TextStyle(fontSize: 64)),
-                      ),
-                    ),
+                    Expanded(flex: 5, child: ArticleArtView(art)),
                     const SizedBox(height: 4),
                     Expanded(
                       flex: 3,

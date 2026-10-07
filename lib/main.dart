@@ -9,7 +9,9 @@ import 'providers/checkout_provider.dart';
 import 'providers/quantity_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/app_storage.dart';
+import 'services/article_image_store.dart';
 import 'theme.dart';
+import 'widgets/article_art.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
@@ -28,7 +30,10 @@ Future<void> main() async {
 class KassenRoot extends StatelessWidget {
   final AppStorage? storage;
 
-  const KassenRoot({super.key, this.storage});
+  /// Für Tests austauschbar (Galerie/Kamera gibt es dort nicht).
+  final ArticleImageStore? imageStore;
+
+  const KassenRoot({super.key, this.storage, this.imageStore});
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +48,7 @@ class KassenRoot extends StatelessWidget {
           create: (context) => CheckoutProvider(cart: context.read<CartProvider>()),
         ),
         ChangeNotifierProvider(create: (_) => QuantityProvider()),
+        Provider<ArticleImageStore>(create: (_) => imageStore ?? ArticleImageStore()),
       ],
       child: const KassenApp(),
     );
@@ -66,7 +72,7 @@ class KassenApp extends StatelessWidget {
       darkTheme: clubDarkTheme,
       themeMode: themeMode,
       builder: (context, child) => OrientationLock(child: child!),
-      home: const HomeScreen(),
+      home: const ArticleArtPrecache(child: HomeScreen()),
     );
   }
 }

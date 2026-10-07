@@ -69,6 +69,13 @@ class FaqScreen extends StatelessWidget {
       'Nein, solange die App geöffnet ist, bleibt der Bildschirm an. Den Akku im Blick behalten.',
     ),
     (
+      'Kann ich eigene Fotos für die Kacheln nehmen?',
+      'Ja. In den Einstellungen beim Artikel auf „Bild“ tippen und ein Foto aus der Galerie '
+          'wählen oder direkt aufnehmen. Über „Standardbild verwenden“ kommt das gezeichnete Bild '
+          'zurück. Die Fotos bleiben nur auf diesem Gerät. Unter „Darstellung“ lässt sich mit '
+          '„Bilder statt Emojis“ auch wieder auf Emojis umstellen.',
+    ),
+    (
       'Gibt es einen Dunkelmodus?',
       'Ja. Die App richtet sich automatisch nach dem Handy: Ist dort das dunkle Design an, ist '
           'auch die Kasse dunkel. In den Einstellungen unter „Darstellung“ lässt sich „Hell“ oder '

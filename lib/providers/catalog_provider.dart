@@ -44,6 +44,7 @@ class CatalogProvider extends ChangeNotifier {
           priceCents: saved.priceCents,
           hasDeposit: saved.hasDeposit,
           visible: saved.visible,
+          imagePath: saved.imagePath,
         ));
       }
     }
@@ -78,6 +79,19 @@ class CatalogProvider extends ChangeNotifier {
 
   void setHasDeposit(String articleId, bool hasDeposit) =>
       _update(articleId, (a) => a.copyWith(hasDeposit: hasDeposit));
+
+  /// Setzt ein eigenes Foto für die Kachel oder entfernt es ([path] null).
+  void setImage(String articleId, String? path) {
+    final index = _articles.indexWhere((a) => a.id == articleId);
+    if (index == -1) {
+      throw ArgumentError.value(articleId, 'articleId', 'unbekannter Artikel');
+    }
+    final old = _articles[index];
+    if (old.imagePath == path) return;
+    _articles[index] = old.copyWith(imagePath: path, clearImage: path == null);
+    _persist();
+    notifyListeners();
+  }
 
   /// Legt eine frei gestaltete Position an und gibt sie zurück.
   Article addCustom({

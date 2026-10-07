@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/article.dart';
 import '../providers/catalog_provider.dart';
-import '../widgets/article_emoji.dart';
+import '../widgets/article_art.dart';
 
 /// Reihenfolge der Kacheln einer Kategorie per Ziehen festlegen. Die
 /// Reihenfolge wird sofort gespeichert und gilt auch für ausgeblendete
@@ -58,7 +58,7 @@ class ReorderScreen extends StatelessWidget {
                       index: index,
                       child: Material(
                         child: ListTile(
-                          leading: Text(emojiFor(article), style: const TextStyle(fontSize: 24)),
+                          leading: ArticleArtView(ArticleArt.of(article), size: 36),
                           title: Text(article.name),
                           subtitle: article.visible ? null : const Text('ausgeblendet'),
                           trailing: ReorderableDragStartListener(

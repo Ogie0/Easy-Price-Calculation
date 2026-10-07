@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
@@ -6,7 +8,8 @@ import '../providers/appearance_provider.dart';
 import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
 import '../utils/version.dart';
-import '../widgets/article_emoji.dart';
+import '../services/article_image_store.dart';
+import '../widgets/article_art.dart';
 import '../widgets/price_field.dart';
 import 'reorder_screen.dart';
 
@@ -63,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
                 _PriceRow(
                   key: const ValueKey('deposit'),
                   label: 'Pfandwert',
-                  emoji: kDepositEmoji,
+                  art: kDepositArt,
                   initialCents: catalog.depositCents,
                   onChanged: catalog.setDeposit,
                 ),
@@ -84,6 +87,7 @@ class SettingsScreen extends StatelessWidget {
                 ],
                 const _SectionHeader('Darstellung'),
                 const _ThemeModeSetting(),
+                const _ShowImagesSetting(),
                 const _SwipeTabsSetting(),
                 const Divider(height: 32),
                 const ListTile(
@@ -142,6 +146,26 @@ class _SwipeTabsSetting extends StatelessWidget {
       subtitle: Text(swipe ? 'An' : 'Aus – Wechsel nur über die Reiter oben'),
       value: swipe,
       onChanged: context.read<AppearanceProvider>().setSwipeTabs,
+    );
+  }
+}
+
+enum _ImageChoice { gallery, camera, reset }
+
+/// Bilder (gezeichnet oder eigenes Foto) oder Emojis auf den Kacheln.
+class _ShowImagesSetting extends StatelessWidget {
+  const _ShowImagesSetting();
+
+  @override
+  Widget build(BuildContext context) {
+    final images = context.select<AppearanceProvider, bool>((a) => a.showImages);
+    return SwitchListTile(
+      key: const ValueKey('show-images'),
+      secondary: const Icon(Icons.image_outlined),
+      title: const Text('Bilder statt Emojis'),
+      subtitle: Text(images ? 'Eigene Fotos oder gezeichnete Bilder' : 'Emojis wie bisher'),
+      value: images,
+      onChanged: context.read<AppearanceProvider>().setShowImages,
     );
   }
 }
@@ -216,7 +240,70 @@ class _ArticleSettings extends StatelessWidget {
         ],
       ),
     );
-    if (delete ?? false) catalog.removeCustom(article.id);
+    if (!(delete ?? false) || !context.mounted) return;
+    final store = context.read<ArticleImageStore>();
+    catalog.removeCustom(article.id);
+    await store.delete(article.imagePath);
+  }
+
+  /// Eigenes Foto aus Galerie oder Kamera, oder zurück zum Standardbild.
+  Future<void> _chooseImage(BuildContext context) async {
+    final catalog = context.read<CatalogProvider>();
+    final store = context.read<ArticleImageStore>();
+    final messenger = ScaffoldMessenger.of(context);
+    final choice = await showModalBottomSheet<_ImageChoice>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text('Bild für „${article.name}“',
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Foto aus der Galerie'),
+              onTap: () => Navigator.pop(context, _ImageChoice.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Foto aufnehmen'),
+              onTap: () => Navigator.pop(context, _ImageChoice.camera),
+            ),
+            if (article.imagePath != null)
+              ListTile(
+                key: const ValueKey('image-reset'),
+                leading: const Icon(Icons.restore),
+                title: Text(article.custom ? 'Foto entfernen' : 'Standardbild verwenden'),
+                onTap: () => Navigator.pop(context, _ImageChoice.reset),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+
+    final old = catalog.articleById(article.id).imagePath;
+    if (choice == _ImageChoice.reset) {
+      catalog.setImage(article.id, null);
+      await store.delete(old);
+      return;
+    }
+    try {
+      final path = await store.pick(
+        article.id,
+        choice == _ImageChoice.camera ? ImageSource.camera : ImageSource.gallery,
+      );
+      if (path == null) return;
+      catalog.setImage(article.id, path);
+      await store.delete(old);
+    } on PlatformException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Foto konnte nicht geladen werden (${e.message ?? e.code}).')),
+      );
+    }
   }
 
   @override
@@ -229,7 +316,7 @@ class _ArticleSettings extends StatelessWidget {
         _PriceRow(
           key: ValueKey('price-${article.id}'),
           label: article.name,
-          emoji: emojiFor(article),
+          art: ArticleArt.of(article),
           initialCents: article.priceCents,
           dimmed: !article.visible,
           onChanged: (cents) => catalog.setPrice(article.id, cents),
@@ -249,6 +336,12 @@ class _ArticleSettings extends StatelessWidget {
                 label: const Text('Pfand'),
                 selected: article.hasDeposit,
                 onSelected: (value) => catalog.setHasDeposit(article.id, value),
+              ),
+              ActionChip(
+                key: ValueKey('image-${article.id}'),
+                avatar: const Icon(Icons.image_outlined),
+                label: const Text('Bild'),
+                onPressed: () => _chooseImage(context),
               ),
               if (article.custom) ...[
                 ActionChip(
@@ -272,7 +365,7 @@ class _ArticleSettings extends StatelessWidget {
 
 class _PriceRow extends StatefulWidget {
   final String label;
-  final String emoji;
+  final ArticleArt art;
   final int initialCents;
   final ValueChanged<int> onChanged;
 
@@ -282,7 +375,7 @@ class _PriceRow extends StatefulWidget {
   const _PriceRow({
     super.key,
     required this.label,
-    required this.emoji,
+    required this.art,
     required this.initialCents,
     required this.onChanged,
     this.dimmed = false,
@@ -345,7 +438,7 @@ class _PriceRowState extends State<_PriceRow> {
     return Opacity(
       opacity: widget.dimmed ? 0.5 : 1,
       child: ListTile(
-        leading: Text(widget.emoji, style: const TextStyle(fontSize: 24)),
+        leading: ArticleArtView(widget.art, size: 36),
         title: Text(widget.label),
         trailing: SizedBox(
           width: 120,

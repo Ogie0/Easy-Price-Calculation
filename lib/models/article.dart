@@ -17,6 +17,9 @@ class Article {
   /// Optionales Emoji für selbst angelegte Positionen.
   final String? emoji;
 
+  /// Eigenes Foto (Pfad im App-Ordner), ersetzt Bild bzw. Emoji.
+  final String? imagePath;
+
   const Article({
     required this.id,
     required this.name,
@@ -26,9 +29,11 @@ class Article {
     this.visible = true,
     this.custom = false,
     this.emoji,
+    this.imagePath,
   });
 
-  /// Kopie mit geänderten Werten. [clearEmoji] entfernt ein eigenes Emoji.
+  /// Kopie mit geänderten Werten. [clearEmoji] bzw. [clearImage] entfernen
+  /// ein eigenes Emoji bzw. Foto.
   Article copyWith({
     String? name,
     ArticleCategory? category,
@@ -37,6 +42,8 @@ class Article {
     bool? visible,
     String? emoji,
     bool clearEmoji = false,
+    String? imagePath,
+    bool clearImage = false,
   }) {
     return Article(
       id: id,
@@ -47,6 +54,7 @@ class Article {
       visible: visible ?? this.visible,
       custom: custom,
       emoji: clearEmoji ? null : (emoji ?? this.emoji),
+      imagePath: clearImage ? null : (imagePath ?? this.imagePath),
     );
   }
 
@@ -59,6 +67,7 @@ class Article {
         'visible': visible,
         'custom': custom,
         if (emoji != null) 'emoji': emoji,
+        if (imagePath != null) 'imagePath': imagePath,
       };
 
   factory Article.fromJson(Map<String, Object?> json) => Article(
@@ -70,5 +79,6 @@ class Article {
         visible: json['visible'] as bool? ?? true,
         custom: json['custom'] as bool? ?? false,
         emoji: json['emoji'] as String?,
+        imagePath: json['imagePath'] as String?,
       );
 }

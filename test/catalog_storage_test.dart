@@ -165,4 +165,29 @@ void main() {
     final fallback = AppearanceProvider(storage: await AppStorage.open());
     expect(fallback.themeMode, ThemeMode.system);
   });
+
+  test('Eigenes Foto wird gespeichert und lässt sich entfernen', () async {
+    SharedPreferences.setMockInitialValues({});
+    final first = CatalogProvider(storage: await AppStorage.open());
+    first.setImage('bier', '/data/fotos/bier.jpg');
+    final kuchen = first.addCustom(name: 'Kuchen', category: ArticleCategory.food, priceCents: 250);
+    first.setImage(kuchen.id, '/data/fotos/kuchen.jpg');
+
+    final restarted = CatalogProvider(storage: await AppStorage.open());
+    expect(restarted.articleById('bier').imagePath, '/data/fotos/bier.jpg');
+    expect(restarted.articleById(kuchen.id).imagePath, '/data/fotos/kuchen.jpg');
+
+    restarted.setImage('bier', null);
+    final again = CatalogProvider(storage: await AppStorage.open());
+    expect(again.articleById('bier').imagePath, isNull);
+    expect(again.articleById('bier').name, 'Bier/Radler');
+  });
+
+  test('Bilder statt Emojis wird gespeichert', () async {
+    SharedPreferences.setMockInitialValues({});
+    final first = AppearanceProvider(storage: await AppStorage.open());
+    expect(first.showImages, isTrue);
+    first.setShowImages(false);
+    expect(AppearanceProvider(storage: await AppStorage.open()).showImages, isFalse);
+  });
 }
