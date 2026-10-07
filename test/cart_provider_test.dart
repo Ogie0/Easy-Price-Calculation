@@ -53,7 +53,7 @@ void main() {
     final lines = cart.lines;
     expect(
       lines.map((l) => (l.label, l.quantity, l.totalCents)),
-      [('Bier', 7, 2100), ('Pfand', 7, 1400), ('Pommes', 1, 300)],
+      [('Bier/Radler', 7, 2100), ('Pfand', 7, 1400), ('Pommes', 1, 300)],
     );
 
     cart.removeOneOf(lines.first);
@@ -126,7 +126,7 @@ void main() {
   test('Pfandwert 0: kein Pfandposten', () {
     catalog.setDeposit(0);
     cart.addArticle(catalog.articleById('bier'));
-    expect(cart.items.map((i) => i.label), ['Bier']);
+    expect(cart.items.map((i) => i.label), ['Bier/Radler']);
   });
 
   test('Lange Pfandrückgabe-Storno und letzte Einheit', () {

@@ -95,7 +95,7 @@ void main() {
     expect(tabBar.right, lessThanOrEqualTo(cart.left));
   });
 
-  const drinks = ['Wasser', 'Softdrink', 'Longdrink', 'Bier', 'Sekt', 'Shot', 'Pfandrückgabe'];
+  const drinks = ['Wasser', 'Softdrink', 'Longdrink', 'Bier/Radler', 'Sekt', 'Shot', 'Pfandrückgabe'];
 
   for (final size in const [Size(1024, 768), Size(1280, 800)]) {
     testWidgets('Tablet ${size.width.toInt()}: alle Getränke ohne Scrollen sichtbar',
@@ -314,15 +314,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('quantity-5')));
     await tester.pump();
     expect(find.widgetWithText(FilledButton, '×5'), findsOneWidget);
-    await tester.tap(find.text('Bier'));
+    await tester.tap(find.text('Bier/Radler'));
     await tester.pump();
-    expect(find.text('5 × Bier'), findsOneWidget);
+    expect(find.text('5 × Bier/Radler'), findsOneWidget);
     expect(find.text('5 × Pfand'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, '×5'), findsNothing, reason: 'gilt nur einmal');
 
-    await tester.tap(find.text('Bier'));
+    await tester.tap(find.text('Bier/Radler'));
     await tester.pump();
-    expect(find.text('6 × Bier'), findsOneWidget);
+    expect(find.text('6 × Bier/Radler'), findsOneWidget);
 
     // Nochmal tippen hebt die Auswahl wieder auf.
     await tester.tap(find.byKey(const ValueKey('quantity-3')));
@@ -333,10 +333,10 @@ void main() {
     expect(find.text('Sekt'), findsNWidgets(2));
 
     // ⊖ storniert eine Einheit der Runde.
-    final bierLine = find.ancestor(of: find.text('6 × Bier'), matching: find.byType(ListTile));
+    final bierLine = find.ancestor(of: find.text('6 × Bier/Radler'), matching: find.byType(ListTile));
     await tester.tap(find.descendant(of: bierLine, matching: find.byTooltip('Stornieren')));
     await tester.pump();
-    expect(find.text('5 × Bier'), findsOneWidget);
+    expect(find.text('5 × Bier/Radler'), findsOneWidget);
   });
 
   testWidgets('Freier Betrag mit Bezeichnung und als Abzug', (tester) async {
@@ -537,7 +537,7 @@ void main() {
     }
 
     await swipeLeft();
-    expect(find.text('Bier'), findsOneWidget, reason: 'Wischen ist anfangs erlaubt');
+    expect(find.text('Bier/Radler'), findsOneWidget, reason: 'Wischen ist anfangs erlaubt');
     await tester.tap(find.text('Speisen'));
     await tester.pumpAndSettle();
 
@@ -552,9 +552,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await swipeLeft();
-    expect(find.text('Bier'), findsNothing, reason: 'gesperrt: bleibt bei Speisen');
+    expect(find.text('Bier/Radler'), findsNothing, reason: 'gesperrt: bleibt bei Speisen');
     await tester.tap(find.text('Getränke'));
     await tester.pumpAndSettle();
-    expect(find.text('Bier'), findsOneWidget, reason: 'Reiter funktionieren weiter');
+    expect(find.text('Bier/Radler'), findsOneWidget, reason: 'Reiter funktionieren weiter');
   });
 }

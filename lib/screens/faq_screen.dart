@@ -34,7 +34,7 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Wie funktioniert das Pfand?',
-      'Bei Getränken mit Pfand (z. B. Wasser, Softdrink, Longdrink, Bier) kommt das Pfand '
+      'Bei Getränken mit Pfand (z. B. Wasser, Softdrink, Longdrink, Bier/Radler) kommt das Pfand '
           'automatisch als eigene Position dazu. Bringt jemand einen Becher zurück, im Tab '
           '„Getränke“ auf „Pfandrückgabe“ tippen – das bucht den Pfandbetrag als Minusbetrag. '
           'Steht der Pfandwert in den Einstellungen auf 0,00 €, ist Pfand ganz ausgeschaltet.',
