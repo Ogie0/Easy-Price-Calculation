@@ -612,6 +612,23 @@ void main() {
     expect(catalog.articleById('bratwurst').imagePath, isNull);
     expect(store.deleted, [path]);
   });
+
+  testWidgets('Fehler beim Foto wird gemeldet, Bild bleibt', (tester) async {
+    setScreen(tester, const Size(400, 800));
+    await tester.pumpWidget(KassenRoot(imageStore: _FailingImageStore()));
+    await openSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('image-bratwurst')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Foto aufnehmen'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Foto konnte nicht übernommen werden'), findsOneWidget);
+  });
+}
+
+class _FailingImageStore extends ArticleImageStore {
+  @override
+  Future<String?> pick(String articleId, ImageSource source) async =>
+      throw const FileSystemException('Speicher voll');
 }
 
 class _FakeImageStore extends ArticleImageStore {

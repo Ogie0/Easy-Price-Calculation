@@ -18,8 +18,8 @@ class FaqScreen extends StatelessWidget {
     (
       'Wie buche ich eine Runde?',
       'Über den Kacheln die Menge wählen (×2 bis ×10) und dann die Kachel antippen, z. B. ×6 und '
-          'Bier. Die Menge gilt nur für diesen einen Tipp, danach wieder einzeln. Nochmal auf die '
-          'gewählte Menge tippen hebt sie auf. Im Warenkorb steht dann „6 × Bier“.',
+          'Bier/Radler. Die Menge gilt nur für diesen einen Tipp, danach wieder einzeln. Nochmal auf '
+          'die gewählte Menge tippen hebt sie auf. Im Warenkorb steht dann „6 × Bier/Radler“.',
     ),
     (
       'Wie buche ich etwas, das nicht im Sortiment ist?',
@@ -28,9 +28,11 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Wie storniere ich eine einzelne Position?',
-      'Im Warenkorb auf ⊖ neben der Position tippen – bei „6 × Bier“ wird jeweils ein Bier '
-          'storniert. Bei Getränken mit Pfand wird das Pfand automatisch mit entfernt. Der Mülleimer oben leert den ganzen Warenkorb – auch das '
-          'lässt sich über „Rückgängig“ in der Meldung unten zurückholen.',
+      'Im Warenkorb auf ⊖ neben der Position tippen – bei „6 × Bier/Radler“ wird jeweils eins '
+          'storniert. Bei Getränken mit Pfand wird das Pfand automatisch mit entfernt. Den ganzen '
+          'Warenkorb leert „Alle löschen“ (Handy, unten) bzw. der Mülleimer oben – nach einer '
+          'Sicherheitsabfrage. Auch das lässt sich über „Rückgängig“ in der Meldung unten '
+          'zurückholen.',
     ),
     (
       'Wie funktioniert das Pfand?',
@@ -57,11 +59,14 @@ class FaqScreen extends StatelessWidget {
       'Über das Zahnrad oben rechts. Die Einstellungen sind mit dem Master-Passwort geschützt '
           '(beim Vorstand erfragen). Dort lassen sich Preise und Pfandwert ändern, Artikel ein- '
           'und ausblenden, Pfand pro Artikel festlegen, die Reihenfolge der Kacheln ändern '
-          '(„Reihenfolge“) und eigene Positionen anlegen, bearbeiten und löschen.',
+          '(„Reihenfolge“), eigene Fotos für die Kacheln wählen („Bild“) und eigene Positionen '
+          'anlegen, bearbeiten und löschen. Unter „Darstellung“ gibt es Hell/Dunkel, Bilder oder '
+          'Emojis und die Sperre fürs Wischen zwischen Speisen und Getränken.',
     ),
     (
       'Werden Umsätze gespeichert?',
-      'Nein. Die App merkt sich nur Preise, Pfandwert und Sortiment auf diesem Gerät. '
+      'Nein. Die App merkt sich nur Preise, Pfandwert, Sortiment, eigene Fotos und die '
+          'Darstellung auf diesem Gerät. '
           'Verkäufe werden nicht protokolliert, und die App braucht kein Internet.',
     ),
     (

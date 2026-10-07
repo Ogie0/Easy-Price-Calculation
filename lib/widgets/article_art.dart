@@ -77,15 +77,24 @@ class ArticleArtView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final images = context.select<AppearanceProvider, bool>((a) => a.showImages);
-    final emoji = FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text(art.emoji, style: TextStyle(fontSize: size ?? 64)),
+    final emoji = ExcludeSemantics(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(art.emoji, style: TextStyle(fontSize: size ?? 64)),
+      ),
     );
     Widget fallback() {
       final asset = art.asset;
       return asset == null
           ? emoji
-          : Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true, errorBuilder: (_, _, _) => emoji);
+          : Image.asset(
+              asset,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+              // Der Name steht ohnehin auf der Kachel.
+              excludeFromSemantics: true,
+              errorBuilder: (_, _, _) => emoji,
+            );
     }
 
     Widget child;
@@ -101,6 +110,7 @@ class ArticleArtView extends StatelessWidget {
               File(file),
               fit: BoxFit.cover,
               gaplessPlayback: true,
+              excludeFromSemantics: true,
               errorBuilder: (_, _, _) => fallback(),
             ),
           ),

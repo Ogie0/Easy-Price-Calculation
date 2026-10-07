@@ -299,9 +299,11 @@ class _ArticleSettings extends StatelessWidget {
       if (path == null) return;
       catalog.setImage(article.id, path);
       await store.delete(old);
-    } on PlatformException catch (e) {
+    } on Object catch (e) {
+      // Keine Berechtigung, Speicher voll o. Ä.: Bild bleibt wie es war.
+      final detail = e is PlatformException ? (e.message ?? e.code) : '$e';
       messenger.showSnackBar(
-        SnackBar(content: Text('Foto konnte nicht geladen werden (${e.message ?? e.code}).')),
+        SnackBar(content: Text('Foto konnte nicht übernommen werden ($detail).')),
       );
     }
   }
