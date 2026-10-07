@@ -112,9 +112,9 @@ class FaqScreen extends StatelessWidget {
     (
       'Wie installiere ich ein Update?',
       'Die neue APK „Knuelle-Kalkulieren-JGC.apk“ aus dem GitHub-Release herunterladen und '
-          'über die bestehende App installieren. Lässt sie sich auf einem sehr alten Handy nicht '
-          'installieren, die Variante „…-aeltere-Handys.apk“ nehmen. Preise und eigene Positionen '
-          'bleiben erhalten. Die installierte Version steht ganz unten in den Einstellungen.',
+          'über die bestehende App installieren. Preise und eigene Positionen bleiben erhalten. '
+          'Die installierte Version steht ganz unten in den Einstellungen. Die App läuft auf '
+          'aktuellen Android-Geräten (64 Bit, Android 7 oder neuer).',
     ),
   ];
 
