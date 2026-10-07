@@ -123,17 +123,19 @@ class ClearCartButton extends StatelessWidget {
     final isEmpty = context.select<CartProvider, bool>((c) => c.isEmpty);
     if (large) {
       final error = Theme.of(context).colorScheme.error;
-      return OutlinedButton.icon(
+      // Schmaler Button (ein Drittel): ohne Symbol, damit die Schrift so
+      // groß bleibt wie bei „Kasse“.
+      return OutlinedButton(
         key: const ValueKey('clear-all'),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           textStyle: _barButtonTextStyle(context),
           foregroundColor: error,
           side: BorderSide(color: isEmpty ? Theme.of(context).disabledColor : error),
         ),
-        icon: const Icon(Icons.delete_sweep),
-        label: const FittedBox(child: Text('Alle löschen')),
         onPressed: isEmpty ? null : () => _clear(context),
+        child: const FittedBox(child: Text('Alle löschen')),
       );
     }
     return IconButton(
@@ -228,9 +230,10 @@ class CartSummaryBar extends StatelessWidget {
                 const SizedBox(height: 8),
                 const Row(
                   children: [
-                    Expanded(child: _CheckoutButton()),
-                    SizedBox(width: 8),
+                    // Löschen links und schmal, „Kasse“ als Hauptaktion rechts.
                     Expanded(child: ClearCartButton(large: true)),
+                    SizedBox(width: 8),
+                    Expanded(flex: 2, child: _CheckoutButton()),
                   ],
                 ),
               ],
