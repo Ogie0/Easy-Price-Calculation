@@ -78,25 +78,36 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "label=$NAME (Build $GITHUB_RUN_NUMBER)" >> "$GITHUB_OUTPUT"
 
+      # Eine APK je Prozessortyp statt einer großen für alle: Die
+      # Haupt-APK (64 Bit) passt auf praktisch alle Handys ab etwa 2015 und
+      # ist nur halb so groß. Die zweite ist für sehr alte bzw. 32-Bit-Geräte.
+      # Android-Versionscodes je Typ: 64 Bit 2000 + Build, 32 Bit 1000 + Build.
       - name: APK bauen
         run: |
-          flutter build apk --release \
+          flutter build apk --release --split-per-abi \
+            --target-platform android-arm,android-arm64 \
             --build-name="${{ steps.version.outputs.name }}" \
             --build-number="$GITHUB_RUN_NUMBER" \
             --dart-define=APP_VERSION="${{ steps.version.outputs.label }}"
-          cp build/app/outputs/flutter-apk/app-release.apk Knuelle-Kalkulieren-JGC.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Knuelle-Kalkulieren-JGC.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Knuelle-Kalkulieren-JGC-aeltere-Handys.apk
+          ls -lh Knuelle-Kalkulieren-JGC*.apk
 
       - name: Signatur prüfen
         id: signature
         run: |
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
           "$APKSIGNER" verify --print-certs Knuelle-Kalkulieren-JGC.apk | tee signature.txt
-          echo "sha256=$(grep -m1 'SHA-256 digest' signature.txt | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
+          "$APKSIGNER" verify --print-certs Knuelle-Kalkulieren-JGC-aeltere-Handys.apk | tee signature-32.txt
+          SHA="$(grep -m1 'SHA-256 digest' signature.txt | awk '{print $NF}')"
+          SHA32="$(grep -m1 'SHA-256 digest' signature-32.txt | awk '{print $NF}')"
+          if [ "$SHA" != "$SHA32" ]; then echo "::error::Unterschiedliche Signaturen"; exit 1; fi
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
         with:
           name: Knuelle-Kalkulieren-JGC-apk
-          path: Knuelle-Kalkulieren-JGC.apk
+          path: Knuelle-Kalkulieren-JGC*.apk
 
   # Stellt die neueste APK unter "Releases" bereit, damit sie direkt auf dem
   # Smartphone heruntergeladen werden kann.
@@ -124,11 +135,14 @@ jobs:
             SIGNING="⚠️ Ohne festen Schlüssel signiert: Diese APK lässt sich nicht über eine bestehende Installation aktualisieren."
           fi
           gh release delete apk-latest --cleanup-tag --yes || true
-          gh release create apk-latest Knuelle-Kalkulieren-JGC.apk \
+          gh release create apk-latest Knuelle-Kalkulieren-JGC.apk Knuelle-Kalkulieren-JGC-aeltere-Handys.apk \
             --target "$GITHUB_SHA" \
             --prerelease \
             --title "Knülle Kalkulieren - JGC $VERSION" \
             --notes "Version $VERSION, automatisch gebaut aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Auf dem Smartphone herunterladen und installieren.
+
+          Knuelle-Kalkulieren-JGC.apk: für fast alle Handys und Tablets (ab ca. 2015).
+          Knuelle-Kalkulieren-JGC-aeltere-Handys.apk: nur falls die erste sich nicht installieren lässt („App nicht installiert“ / nicht kompatibel).
 
           ${SIGNING}
           Zertifikat (SHA-256): ${FINGERPRINT}"

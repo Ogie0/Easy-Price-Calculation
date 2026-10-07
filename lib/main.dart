@@ -12,6 +12,7 @@ import 'services/app_storage.dart';
 import 'services/article_image_store.dart';
 import 'theme.dart';
 import 'widgets/article_art.dart';
+import 'widgets/lost_photo_recovery.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
@@ -48,7 +49,9 @@ class KassenRoot extends StatelessWidget {
           create: (context) => CheckoutProvider(cart: context.read<CartProvider>()),
         ),
         ChangeNotifierProvider(create: (_) => QuantityProvider()),
-        Provider<ArticleImageStore>(create: (_) => imageStore ?? ArticleImageStore()),
+        Provider<ArticleImageStore>(
+          create: (_) => imageStore ?? ArticleImageStore(storage: storage),
+        ),
       ],
       child: const KassenApp(),
     );
@@ -72,7 +75,7 @@ class KassenApp extends StatelessWidget {
       darkTheme: clubDarkTheme,
       themeMode: themeMode,
       builder: (context, child) => OrientationLock(child: child!),
-      home: const ArticleArtPrecache(child: HomeScreen()),
+      home: const ArticleArtPrecache(child: LostPhotoRecovery(child: HomeScreen())),
     );
   }
 }

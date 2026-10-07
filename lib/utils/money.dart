@@ -25,3 +25,22 @@ int? parseCents(String input) {
 /// Betrag für ein Eingabefeld, z. B. 250 → "2,50".
 String centsToInput(int cents) =>
     '${cents ~/ 100},${(cents % 100).toString().padLeft(2, '0')}';
+
+/// Scheine und Münzen in Cent, größte zuerst.
+const List<int> kDenominations = [5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+
+/// Wie sich ein Betrag mit möglichst wenigen Scheinen und Münzen herausgeben
+/// lässt, z. B. 1550 → "10 € + 5 € + 50 ct", 4000 → "2 × 20 €".
+String changeBreakdown(int cents) {
+  if (cents <= 0) return '';
+  final parts = <String>[];
+  var rest = cents;
+  for (final value in kDenominations) {
+    final count = rest ~/ value;
+    if (count == 0) continue;
+    rest -= count * value;
+    final name = value >= 100 ? '${value ~/ 100} €' : '$value ct';
+    parts.add(count == 1 ? name : '$count × $name');
+  }
+  return parts.join(' + ');
+}

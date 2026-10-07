@@ -11,6 +11,7 @@ import '../services/app_storage.dart';
 /// Start wieder geladen.
 class CatalogProvider extends ChangeNotifier {
   final List<Article> _articles;
+  final List<Article> _defaults;
   final AppStorage? _storage;
   int _depositCents;
   int _nextCustomId = 0;
@@ -20,6 +21,7 @@ class CatalogProvider extends ChangeNotifier {
     int depositCents = kDefaultDepositCents,
     AppStorage? storage,
   })  : _storage = storage,
+        _defaults = articles,
         _articles = _load(articles, storage),
         _depositCents = storage?.loadDeposit() ?? depositCents;
 
@@ -34,6 +36,10 @@ class CatalogProvider extends ChangeNotifier {
           a.copyWith(priceCents: storage?.loadLegacyPrice(a.id) ?? a.priceCents),
       ];
     }
+    return _merge(defaults, stored);
+  }
+
+  static List<Article> _merge(List<Article> defaults, List<Article> stored) {
     final defaultsById = {for (final a in defaults) a.id: a};
     final result = <Article>[];
     for (final saved in stored) {
@@ -51,6 +57,38 @@ class CatalogProvider extends ChangeNotifier {
     return result..addAll(defaultsById.values);
   }
 
+  /// Übernimmt ein Sortiment von einem anderen Gerät (QR-Code): Preise,
+  /// Pfand, Sichtbarkeit, Reihenfolge und eigene Positionen. Eigene Fotos
+  /// dieses Geräts bleiben bei den Artikeln, die es weiterhin gibt. Liefert
+  /// die Fotos, die nicht mehr gebraucht werden.
+  List<String> replaceAll(List<Article> imported, int depositCents) {
+    if (depositCents < 0) {
+      throw ArgumentError.value(depositCents, 'depositCents', 'darf nicht negativ sein');
+    }
+    final photos = {
+      for (final a in _articles)
+        if (a.imagePath != null) a.id: a.imagePath!,
+    };
+    final merged = [
+      for (final a in _merge(_defaults, imported))
+        switch (photos.remove(a.id)) {
+          final photo? => a.copyWith(imagePath: photo),
+          null => a.copyWith(clearImage: true),
+        },
+    ];
+    _articles
+      ..clear()
+      ..addAll(merged);
+    _depositCents = depositCents;
+    _persist();
+    _save(_storage?.saveDeposit(depositCents));
+    notifyListeners();
+    return photos.values.toList();
+  }
+
+  /// Alle Artikel in ihrer Reihenfolge (z. B. zum Teilen per QR-Code).
+  List<Article> get all => List.unmodifiable(_articles);
+
   /// Alle Artikel einer Kategorie, auch ausgeblendete (für die Einstellungen).
   List<Article> allOf(ArticleCategory category) =>
       _articles.where((a) => a.category == category).toList();
@@ -66,6 +104,14 @@ class CatalogProvider extends ChangeNotifier {
   int get depositCents => _depositCents;
 
   Article articleById(String id) => _articles.firstWhere((a) => a.id == id);
+
+  /// Artikel oder null, wenn es ihn (nicht mehr) gibt.
+  Article? articleOrNull(String id) {
+    for (final a in _articles) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
 
   void setPrice(String articleId, int priceCents) {
     if (priceCents < 0) {

@@ -33,7 +33,8 @@ class CheckoutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kasse'),
-        actions: const [ClearCartButton()],
+        // Leerer Warenkorb: zurück zu den Kacheln für den nächsten Kunden.
+        actions: [ClearCartButton(onCleared: () => Navigator.of(context).maybePop())],
       ),
       body: SafeArea(
         // Fester Rahmen (Relayout-Grenze) und eigene Zeichenebene: Sonst

@@ -13,6 +13,7 @@ class AppStorage {
   static const _themeModeKey = 'theme_mode';
   static const _swipeTabsKey = 'swipe_tabs';
   static const _showImagesKey = 'show_images';
+  static const _pendingImageKey = 'pending_image_article';
 
   /// Ältere Versionen haben nur die Preise einzeln gespeichert.
   static const _legacyPricePrefix = 'price_cents_';
@@ -69,4 +70,11 @@ class AppStorage {
   bool? loadShowImages() => _prefs.getBool(_showImagesKey);
 
   Future<void> saveShowImages(bool value) => _prefs.setBool(_showImagesKey, value);
+
+  /// Artikel, für den gerade ein Foto ausgewählt wird (sonst null).
+  String? loadPendingImage() => _prefs.getString(_pendingImageKey);
+
+  Future<void> savePendingImage(String? articleId) => articleId == null
+      ? _prefs.remove(_pendingImageKey)
+      : _prefs.setString(_pendingImageKey, articleId);
 }

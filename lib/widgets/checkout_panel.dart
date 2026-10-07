@@ -109,6 +109,9 @@ class _ChangeDisplay extends StatelessWidget {
       background: background,
       foreground: foreground,
       muted: status.state == PaymentState.awaitingCash,
+      // So wird das Rückgeld herausgegeben, z. B. „10 € + 5 € + 50 ct“.
+      note: status.state == PaymentState.change ? changeBreakdown(status.cents) : '',
+      noteKey: const ValueKey('change-breakdown'),
     );
   }
 }

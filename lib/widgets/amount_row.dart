@@ -15,6 +15,11 @@ class AmountRow extends StatelessWidget {
   /// Ausgegrauter Betrag, solange noch nichts eingegeben wurde.
   final bool muted;
 
+  /// Kleine Zusatzzeile unter dem Betrag (z. B. Stückelung des Rückgelds).
+  /// Ein leerer Text hält den Platz frei, damit nichts springt.
+  final String? note;
+  final Key? noteKey;
+
   const AmountRow({
     super.key,
     required this.label,
@@ -23,6 +28,8 @@ class AmountRow extends StatelessWidget {
     this.background,
     this.foreground,
     this.muted = false,
+    this.note,
+    this.noteKey,
   });
 
   @override
@@ -37,7 +44,7 @@ class AmountRow extends StatelessWidget {
       decoration: background == null
           ? null
           : BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
-      child: LayoutBuilder(
+      child: _withNote(theme, labelColor, LayoutBuilder(
         builder: (context, constraints) => Row(
           children: [
             // Die Beschriftung darf höchstens gut die Hälfte belegen und wird
@@ -66,7 +73,28 @@ class AmountRow extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      )),
+    );
+  }
+
+  Widget _withNote(ThemeData theme, Color color, Widget row) {
+    final note = this.note;
+    if (note == null) return row;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        FittedBox(
+          alignment: Alignment.centerRight,
+          fit: BoxFit.scaleDown,
+          child: Text(
+            note.isEmpty ? ' ' : note,
+            key: noteKey,
+            style: theme.textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 }

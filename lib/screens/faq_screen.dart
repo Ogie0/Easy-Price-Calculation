@@ -45,7 +45,8 @@ class FaqScreen extends StatelessWidget {
       'Wie berechne ich das Rückgeld?',
       'Auf dem Handy unten auf „Kasse“ tippen, auf dem Tablet steht der Ziffernblock rechts. '
           'Gegebenes Geld eintippen oder eine Schnelltaste (Passend, 5 €, 10 € …) wählen. '
-          'Das Rückgeld erscheint grün; reicht das Geld nicht, steht dort rot „Es fehlen“.',
+          'Das Rückgeld erscheint grün, darunter steht, wie man es am besten herausgibt '
+          '(z. B. „10 € + 5 € + 50 ct“). Reicht das Geld nicht, steht dort rot „Es fehlen“.',
     ),
     (
       'Was passiert bei „Abschließen“?',
@@ -64,6 +65,14 @@ class FaqScreen extends StatelessWidget {
           'Emojis und die Sperre fürs Wischen zwischen Speisen und Getränken.',
     ),
     (
+      'Wie richte ich mehrere Kassen gleich ein?',
+      'Auf einem Gerät alles einrichten, dann dort in den Einstellungen „Sortiment teilen“ '
+          'öffnen. Auf dem anderen Gerät in den Einstellungen „Sortiment übernehmen“ wählen und '
+          'die Kamera auf den QR-Code richten. '
+          'Preise, Pfand, Reihenfolge und eigene Positionen werden übernommen, ganz ohne Internet. '
+          'Eigene Fotos bleiben auf dem jeweiligen Gerät.',
+    ),
+    (
       'Werden Umsätze gespeichert?',
       'Nein. Die App merkt sich nur Preise, Pfandwert, Sortiment, eigene Fotos und die '
           'Darstellung auf diesem Gerät. '
@@ -72,6 +81,15 @@ class FaqScreen extends StatelessWidget {
     (
       'Geht der Bildschirm aus?',
       'Nein, solange die App geöffnet ist, bleibt der Bildschirm an. Den Akku im Blick behalten.',
+    ),
+    (
+      'Wie verhindere ich, dass Helfer versehentlich die App verlassen?',
+      'Mit der Android-Funktion „App anpinnen“ (je nach Hersteller auch „Bildschirm fixieren“). '
+          'Einmalig einschalten: in den Handy-Einstellungen unter Sicherheit (ggf. „Weitere '
+          'Einstellungen“) „App anpinnen“ aktivieren. Dann die Übersicht der offenen Apps '
+          'öffnen, oben auf das Symbol der Kasse tippen und „Anpinnen“ wählen. Lösen: Zurück und Übersicht gleichzeitig gedrückt halten '
+          '(bei Gestensteuerung von unten nach oben wischen und halten). Die genauen Namen der '
+          'Menüs unterscheiden sich je nach Handy.',
     ),
     (
       'Kann ich eigene Fotos für die Kacheln nehmen?',
@@ -93,9 +111,10 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Wie installiere ich ein Update?',
-      'Die neue APK aus dem GitHub-Release herunterladen und über die bestehende App '
-          'installieren. Preise und eigene Positionen bleiben dabei erhalten. Die installierte '
-          'Version steht ganz unten in den Einstellungen.',
+      'Die neue APK „Knuelle-Kalkulieren-JGC.apk“ aus dem GitHub-Release herunterladen und '
+          'über die bestehende App installieren. Lässt sie sich auf einem sehr alten Handy nicht '
+          'installieren, die Variante „…-aeltere-Handys.apk“ nehmen. Preise und eigene Positionen '
+          'bleiben erhalten. Die installierte Version steht ganz unten in den Einstellungen.',
     ),
   ];
 

@@ -82,7 +82,10 @@ class ClearCartButton extends StatelessWidget {
   /// Großer Button mit Beschriftung (Smartphone, neben „Kasse“) statt Symbol.
   final bool large;
 
-  const ClearCartButton({super.key, this.large = false});
+  /// Nach dem Leeren, z. B. um den Kassierbildschirm zu schließen.
+  final VoidCallback? onCleared;
+
+  const ClearCartButton({super.key, this.large = false, this.onCleared});
 
   Future<void> _clear(BuildContext context) async {
     final cart = context.read<CartProvider>();
@@ -116,6 +119,7 @@ class ClearCartButton extends StatelessWidget {
     final input = context.read<CheckoutProvider>().input;
     cart.clear();
     showUndoSnackBar(context, message: 'Warenkorb geleert', items: items, input: input);
+    onCleared?.call();
   }
 
   @override

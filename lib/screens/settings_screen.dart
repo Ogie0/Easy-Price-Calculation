@@ -9,8 +9,10 @@ import '../providers/catalog_provider.dart';
 import '../utils/money.dart';
 import '../utils/version.dart';
 import '../services/article_image_store.dart';
+import '../services/catalog_transfer.dart';
 import '../widgets/article_art.dart';
 import '../widgets/price_field.dart';
+import 'catalog_share_screen.dart';
 import 'reorder_screen.dart';
 
 /// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
@@ -34,6 +36,48 @@ class SettingsScreen extends StatelessWidget {
       hasDeposit: result.hasDeposit,
       emoji: result.emoji,
     );
+  }
+
+  /// Scannt den QR-Code eines anderen Geräts (in Tests austauschbar).
+  @visibleForTesting
+  static Future<CatalogTransfer?> Function(BuildContext context) scan = (context) =>
+      Navigator.of(context).push<CatalogTransfer>(
+        MaterialPageRoute(builder: (_) => const CatalogScanScreen()),
+      );
+
+  Future<void> _importCatalog(BuildContext context) async {
+    final catalog = context.read<CatalogProvider>();
+    final store = context.read<ArticleImageStore>();
+    final messenger = ScaffoldMessenger.of(context);
+    final transfer = await scan(context);
+    if (transfer == null || !context.mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sortiment übernehmen?'),
+        content: Text(
+          '${transfer.articles.length} Artikel, Pfand ${formatCents(transfer.depositCents)}.\n\n'
+          'Preise, Pfand, Reihenfolge, Sichtbarkeit und eigene Positionen dieses Geräts werden '
+          'ersetzt. Eigene Fotos bleiben bei den Artikeln, die es weiterhin gibt.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Abbrechen')),
+          FilledButton(
+            key: const ValueKey('confirm-import'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Übernehmen'),
+          ),
+        ],
+      ),
+    );
+    if (!(ok ?? false)) return;
+    final unused = catalog.replaceAll(transfer.articles, transfer.depositCents);
+    messenger.showSnackBar(
+      SnackBar(content: Text('Sortiment übernommen (${transfer.articles.length} Artikel)')),
+    );
+    for (final path in unused) {
+      await store.delete(path);
+    }
   }
 
   void _openReorder(BuildContext context, ArticleCategory category) {
@@ -85,6 +129,23 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   for (final a in catalog.allOf(category)) _ArticleSettings(article: a),
                 ],
+                const _SectionHeader('Mehrere Kassen'),
+                ListTile(
+                  key: const ValueKey('share-catalog'),
+                  leading: const Icon(Icons.qr_code_2),
+                  title: const Text('Sortiment teilen'),
+                  subtitle: const Text('QR-Code für ein anderes Gerät anzeigen'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const CatalogShareScreen()),
+                  ),
+                ),
+                ListTile(
+                  key: const ValueKey('import-catalog'),
+                  leading: const Icon(Icons.qr_code_scanner),
+                  title: const Text('Sortiment übernehmen'),
+                  subtitle: const Text('QR-Code eines anderen Geräts scannen'),
+                  onTap: () => _importCatalog(context),
+                ),
                 const _SectionHeader('Darstellung'),
                 const _ThemeModeSetting(),
                 const _ShowImagesSetting(),
