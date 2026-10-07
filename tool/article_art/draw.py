@@ -1,5 +1,7 @@
 """Zeichnet die Artikelbilder (assets/articles) als SVG und rendert sie mit
-Chromium zu PNG (384 x 384, transparent, auf den Inhalt zugeschnitten).
+Chromium zu PNG (längste Seite 384 px, transparent, auf den Inhalt
+zugeschnitten). Halbrealistischer Stil: Verläufe, Licht, Schatten und
+Oberflächenstruktur statt Konturen.
 
 Aufruf: python3 tool/article_art/draw.py <ausgabeordner> [chromium]
 Danach die PNGs nach assets/articles kopieren (pfand -> pfandrueckgabe,
@@ -12,219 +14,432 @@ import sys
 OUT = sys.argv[1]
 CHROME = sys.argv[2] if len(sys.argv) > 2 else (
     '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell')
-INK = '#3b2a20'
-SW = 10  # Konturstärke
+
+# Gemeinsame Filter: weicher Schatten, Körnung (Brot, Fleisch, Panade),
+# unregelmäßiger Rand (Panade) und weiche Glanzlichter.
+COMMON = '''
+<filter id="blur8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+<filter id="blur3" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<filter id="blur1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="grain" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0 0.03  1.1 0 0 0 -0.55" result="d"/>
+  <feComposite in="d" in2="SourceAlpha" operator="in" result="d2"/>
+  <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="d2"/></feMerge>
+</filter>
+<filter id="grainFine" x="0" y="0" width="100%" height="100%">
+  <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="1" seed="9" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.9 0 0 0 -0.5" result="d"/>
+  <feComposite in="d" in2="SourceAlpha" operator="in" result="d2"/>
+  <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="d2"/></feMerge>
+</filter>
+<filter id="crumb" x="-10%" y="-10%" width="120%" height="120%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="2" result="t"/>
+  <feDisplacementMap in="SourceGraphic" in2="t" scale="16" xChannelSelector="R" yChannelSelector="G" result="r"/>
+  <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="5" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.22  0 0 0 0 0.02  1.4 0 0 0 -0.6" result="d"/>
+  <feComposite in="d" in2="r" operator="in" result="d2"/>
+  <feMerge><feMergeNode in="r"/><feMergeNode in="d2"/></feMerge>
+</filter>
+'''
 
 
-def svg(body, defs=''):
+def svg(body, defs='', shadow=(256, 452, 170, 18)):
+    cx, cy, rx, ry = shadow
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-<defs>{defs}</defs>
-<ellipse cx="256" cy="452" rx="170" ry="20" fill="#000" opacity=".13"/>
-<g stroke="{INK}" stroke-width="{SW}" stroke-linejoin="round" stroke-linecap="round">{body}</g>
+<defs>{COMMON}{defs}</defs>
+<ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="#000" opacity=".28" filter="url(#blur8)"/>
+{body}
 </svg>'''
 
 
-def hl(d, w=10, op=.55):
-    """Glanzlicht ohne Kontur."""
-    return f'<path d="{d}" fill="none" stroke="#fff" stroke-width="{w}" opacity="{op}"/>'
+def shine(d, w=8, op=.7, blur='blur3'):
+    """Weiches Glanzlicht."""
+    return f'<path d="{d}" fill="none" stroke="#fff" stroke-width="{w}" stroke-linecap="round" opacity="{op}" filter="url(#{blur})"/>'
+
+
+def glass_body(d, gid):
+    """Klarglas: leicht getönt, Ränder dunkler."""
+    return f'<path d="{d}" fill="url(#{gid})"/>'
+
+
+GLASS = '''
+<linearGradient id="glass" x1="0" x2="1">
+  <stop offset="0" stop-color="#9fb8c0" stop-opacity=".6"/>
+  <stop offset=".08" stop-color="#ffffff" stop-opacity=".25"/>
+  <stop offset=".3" stop-color="#ffffff" stop-opacity=".04"/>
+  <stop offset=".75" stop-color="#ffffff" stop-opacity=".04"/>
+  <stop offset=".92" stop-color="#ffffff" stop-opacity=".2"/>
+  <stop offset="1" stop-color="#8aa6b0" stop-opacity=".65"/>
+</linearGradient>
+<linearGradient id="glassEdge" x1="0" x2="1">
+  <stop offset="0" stop-color="#7d97a0"/><stop offset=".5" stop-color="#cfe0e5"/><stop offset="1" stop-color="#7d97a0"/>
+</linearGradient>
+<radialGradient id="ice" cx=".35" cy=".3" r=".9">
+  <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".6" stop-color="#e3f1f6" stop-opacity=".7"/>
+  <stop offset="1" stop-color="#a9c6d0" stop-opacity=".75"/>
+</radialGradient>
+'''
+
+
+def ice(x, y, s, r):
+    return (f'<g transform="rotate({r} {x + s / 2} {y + s / 2})">'
+            f'<rect x="{x}" y="{y}" width="{s}" height="{s}" rx="{s * .2}" fill="url(#ice)"/>'
+            f'<path d="M{x + s * .2} {y + s * .25} L{x + s * .55} {y + s * .2}" stroke="#fff" stroke-width="4" '
+            f'stroke-linecap="round" opacity=".9" filter="url(#blur1)"/></g>')
+
+
+def drops(points):
+    """Kondenstropfen."""
+    out = []
+    for x, y, r in points:
+        out.append(f'<ellipse cx="{x}" cy="{y}" rx="{r}" ry="{r * 1.25}" fill="#ffffff" opacity=".35"/>'
+                   f'<ellipse cx="{x - r * .3}" cy="{y - r * .4}" rx="{r * .35}" ry="{r * .4}" fill="#fff" opacity=".9"/>')
+    return ''.join(out)
+
+
+def bubbles(points, color='#fff7d6', op=.8):
+    return ''.join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{color}" opacity="{op}"/>' for x, y, r in points)
 
 
 ART = {}
 
-ART['bratwurst'] = svg(f'''
-<path d="M78 268 Q256 168 434 268 L434 300 L78 300 Z" fill="#d9964a"/>
-<rect x="46" y="238" width="420" height="78" rx="39" fill="#b4532b"/>
-<g stroke="#7d3317" stroke-width="7"><path d="M120 258 l26 38 M190 256 l26 40 M260 256 l26 40 M330 256 l26 40 M394 258 l22 34"/></g>
-{hl('M92 256 Q256 248 420 256', 9)}
-<path d="M80 270 q20 -22 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none" stroke="#f2c418" stroke-width="12"/>
-<path d="M66 300 Q256 410 446 300 Q456 338 428 358 Q256 446 84 358 Q56 338 66 300 Z" fill="#efb565"/>
-{hl('M110 352 Q256 410 400 352', 9, .35)}
+# ---------------------------------------------------------------- Speisen
+
+ART['bratwurst'] = svg('''
+<g filter="url(#grain)">
+  <path d="M70 262 Q256 160 442 262 L440 300 L72 300 Z" fill="url(#bunBack)"/>
+</g>
+<rect x="44" y="232" width="424" height="84" rx="42" fill="url(#wurst)"/>
+<g stroke="#4a1a08" stroke-width="10" stroke-linecap="round" opacity=".55" filter="url(#blur3)">
+  <path d="M118 250 l26 46 M188 248 l26 48 M258 248 l26 48 M328 248 l26 48 M392 250 l22 40"/>
+</g>
+''' + shine('M88 254 Q256 242 424 254', 9, .55) + '''
+<path d="M78 268 q20 -22 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none"
+  stroke="#9b7400" stroke-width="15" stroke-linecap="round" opacity=".45" filter="url(#blur1)" transform="translate(0 3)"/>
+<path d="M78 268 q20 -22 40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0 t40 0" fill="none"
+  stroke="url(#senf)" stroke-width="12" stroke-linecap="round"/>
+<g filter="url(#grain)">
+  <path d="M60 298 Q256 410 452 298 Q464 340 432 362 Q256 452 80 362 Q48 340 60 298 Z" fill="url(#bunFront)"/>
+</g>
+''' + shine('M104 350 Q256 412 408 350', 10, .3, 'blur8'), defs='''
+<linearGradient id="wurst" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#7a2c12"/><stop offset=".3" stop-color="#b85a2c"/><stop offset=".55" stop-color="#a24a22"/>
+  <stop offset="1" stop-color="#5b1f0c"/>
+</linearGradient>
+<linearGradient id="bunBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8692a"/><stop offset="1" stop-color="#e9b16c"/></linearGradient>
+<linearGradient id="bunFront" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f6d9a6"/><stop offset=".35" stop-color="#e9a95a"/><stop offset=".8" stop-color="#c7782f"/><stop offset="1" stop-color="#9c5520"/>
+</linearGradient>
+<linearGradient id="senf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe45a"/><stop offset="1" stop-color="#e2b400"/></linearGradient>
 ''')
 
-ART['currywurst'] = svg(f'''
-<path d="M318 300 L366 150" stroke="#e7c27b" stroke-width="18"/>
-<path d="M352 146 l-8 -34 M366 150 l0 -36 M380 154 l8 -34" stroke="#e7c27b" stroke-width="10"/>
-<path d="M84 292 L428 292 L398 410 L114 410 Z" fill="#fbfbf7"/>
-<path d="M95 330 L417 330" stroke="#d63a2b" stroke-width="14"/>
-<g fill="#b4532b">
-<ellipse cx="150" cy="280" rx="40" ry="26"/><ellipse cx="226" cy="268" rx="40" ry="26"/>
-<ellipse cx="302" cy="270" rx="40" ry="26"/><ellipse cx="370" cy="282" rx="38" ry="25"/>
-<ellipse cx="190" cy="300" rx="40" ry="24"/><ellipse cx="268" cy="298" rx="40" ry="24"/><ellipse cx="340" cy="300" rx="38" ry="24"/>
-</g>
-<path d="M118 262 Q150 238 190 258 Q230 236 268 254 Q310 236 350 256 Q384 246 398 272 Q380 300 340 292 Q300 312 262 294 Q222 312 190 292 Q150 304 118 262 Z" fill="#c9311f"/>
-<g fill="#f0b21c" stroke="none">
-<circle cx="160" cy="262" r="5"/><circle cx="200" cy="270" r="4"/><circle cx="244" cy="258" r="5"/><circle cx="282" cy="270" r="4"/>
-<circle cx="318" cy="258" r="5"/><circle cx="356" cy="272" r="4"/><circle cx="226" cy="282" r="4"/><circle cx="300" cy="284" r="4"/>
-</g>
-''')
-
-ART['krakauer'] = svg(f'''
-<path d="M60 300 C90 170 340 130 456 220 L432 290 C340 220 160 236 140 330 Z" fill="#9b3a28"/>
-<g fill="#e7b7a3" stroke="none">
-<circle cx="120" cy="268" r="6"/><circle cx="160" cy="236" r="5"/><circle cx="214" cy="214" r="6"/><circle cx="270" cy="204" r="5"/>
-<circle cx="326" cy="206" r="6"/><circle cx="380" cy="220" r="5"/><circle cx="420" cy="242" r="5"/><circle cx="104" cy="306" r="5"/>
-<circle cx="190" cy="244" r="4"/><circle cx="300" cy="226" r="4"/><circle cx="360" cy="244" r="4"/>
-</g>
-{hl('M96 262 C150 196 300 170 410 206', 9, .35)}
-<ellipse cx="100" cy="316" rx="38" ry="42" fill="#d6857a" transform="rotate(18 100 316)"/>
-<g fill="#f8e4dc" stroke="none"><circle cx="92" cy="300" r="7"/><circle cx="112" cy="324" r="6"/><circle cx="88" cy="334" r="5"/><circle cx="114" cy="296" r="4"/></g>
+ART['currywurst'] = svg('''
+<path d="M322 300 L372 140" stroke="#c9a061" stroke-width="16" stroke-linecap="round"/>
+<path d="M358 136 l-8 -32 M372 140 l0 -34 M386 144 l8 -32" stroke="#c9a061" stroke-width="9" stroke-linecap="round"/>
+<path d="M322 300 L372 140" stroke="#fff" stroke-width="4" opacity=".4" filter="url(#blur1)"/>
+<path d="M78 290 L434 290 L404 414 L108 414 Z" fill="url(#schale)"/>
+<path d="M78 290 L434 290 L430 304 L82 304 Z" fill="#e9e9e2"/>
+<path d="M92 334 L420 334" stroke="#c8352a" stroke-width="12"/>
 <g>
-<ellipse cx="250" cy="380" rx="56" ry="40" fill="#9b3a28"/>
-<ellipse cx="256" cy="376" rx="44" ry="30" fill="#d6857a" stroke="none"/>
-<g fill="#f8e4dc" stroke="none"><circle cx="240" cy="368" r="7"/><circle cx="268" cy="384" r="6"/><circle cx="262" cy="362" r="4"/><circle cx="238" cy="388" r="4"/></g>
-<ellipse cx="380" cy="384" rx="56" ry="40" fill="#9b3a28"/>
-<ellipse cx="386" cy="380" rx="44" ry="30" fill="#d6857a" stroke="none"/>
-<g fill="#f8e4dc" stroke="none"><circle cx="372" cy="372" r="7"/><circle cx="398" cy="388" r="6"/><circle cx="394" cy="366" r="4"/><circle cx="368" cy="392" r="4"/></g>
+''' + ''.join(f'''<ellipse cx="{x}" cy="{y}" rx="40" ry="25" fill="url(#skin)"/>
+<ellipse cx="{x}" cy="{y - 4}" rx="30" ry="16" fill="url(#cut)"/>''' for x, y in
+              [(150, 280), (226, 268), (302, 270), (370, 282), (190, 300), (268, 298), (340, 300)]) + '''
 </g>
-''')
-
-ART['steak'] = svg(f'''
-<path d="M86 260 C84 176 210 140 306 160 C402 180 448 238 428 308 C408 382 302 408 214 392 C130 378 88 336 86 260 Z" fill="#e9cfae"/>
-<path d="M112 262 C112 196 214 172 298 186 C380 200 414 244 400 300 C384 356 298 378 222 366 C150 354 112 318 112 262 Z" fill="#8f4a2a" stroke="none"/>
-<g stroke="#4b2414" stroke-width="13" opacity=".85">
-<path d="M150 228 L230 310 M196 196 L300 300 M256 186 L360 290 M318 196 L392 270 M140 300 L176 336"/>
+<path d="M116 262 Q150 236 190 256 Q230 232 268 252 Q310 232 350 254 Q386 242 400 272 Q382 302 340 294 Q300 314 262 296 Q222 314 188 294 Q148 306 116 262 Z" fill="url(#sauce)"/>
+''' + shine('M150 254 Q170 246 190 256', 6, .8, 'blur1') + shine('M262 248 Q282 240 300 246', 6, .8, 'blur1') + shine('M344 258 Q362 252 380 262', 5, .7, 'blur1') + '''
+<g fill="#e6a51d" filter="url(#blur1)">
+  <circle cx="160" cy="264" r="4"/><circle cx="200" cy="272" r="3.5"/><circle cx="244" cy="258" r="4"/><circle cx="282" cy="272" r="3"/>
+  <circle cx="318" cy="258" r="4"/><circle cx="356" cy="274" r="3"/><circle cx="226" cy="284" r="3"/><circle cx="300" cy="284" r="3.5"/>
+  <circle cx="176" cy="282" r="3"/><circle cx="336" cy="282" r="3"/><circle cx="264" cy="266" r="3"/>
 </g>
-{hl('M150 214 C200 186 280 182 340 198', 8, .3)}
-<path d="M280 196 C320 176 350 176 370 192" fill="none" stroke="#3f8f3a" stroke-width="9"/>
-<g fill="#4fa046" stroke="none"><ellipse cx="300" cy="180" rx="13" ry="5" transform="rotate(-30 300 180)"/><ellipse cx="324" cy="174" rx="13" ry="5" transform="rotate(20 324 174)"/><ellipse cx="346" cy="178" rx="13" ry="5" transform="rotate(-25 346 178)"/><ellipse cx="312" cy="196" rx="13" ry="5" transform="rotate(30 312 196)"/><ellipse cx="336" cy="194" rx="13" ry="5" transform="rotate(-20 336 194)"/></g>
+''', defs='''
+<linearGradient id="schale" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d9d0"/></linearGradient>
+<radialGradient id="skin" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#b8602f"/><stop offset="1" stop-color="#6e2810"/></radialGradient>
+<radialGradient id="cut" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#e3a98a"/><stop offset="1" stop-color="#b8714f"/></radialGradient>
+<linearGradient id="sauce" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2452a"/><stop offset=".6" stop-color="#b8231a"/><stop offset="1" stop-color="#8a150f"/></linearGradient>
 ''')
 
-ART['pommes'] = svg(f'''
-<g fill="#f6c84c">
-<rect x="170" y="110" width="30" height="190" rx="6" transform="rotate(-14 185 205)"/>
-<rect x="212" y="88" width="30" height="210" rx="6" transform="rotate(-5 227 193)"/>
-<rect x="254" y="80" width="30" height="220" rx="6" transform="rotate(4 269 190)"/>
-<rect x="296" y="96" width="30" height="204" rx="6" transform="rotate(12 311 198)"/>
-<rect x="236" y="120" width="30" height="180" rx="6" transform="rotate(-1 251 210)"/>
-<rect x="190" y="138" width="30" height="170" rx="6" transform="rotate(8 205 223)"/>
-<rect x="276" y="140" width="30" height="170" rx="6" transform="rotate(-9 291 225)"/>
+ART['krakauer'] = svg('''
+<g filter="url(#grain)">
+  <path d="M60 300 C90 170 340 130 456 220 L432 292 C340 222 160 238 140 332 Z" fill="url(#kraka)"/>
 </g>
-<path d="M138 236 Q256 270 374 236 L340 440 L172 440 Z" fill="#d8312c"/>
-<path d="M150 252 Q256 284 362 252" fill="none" stroke="#fff" stroke-width="8" opacity=".55"/>
-<path d="M162 360 Q256 330 350 360" fill="none" stroke="#fff" stroke-width="16" opacity=".9"/>
-''')
-
-ART['nuggets'] = svg(f'''
-<path d="M300 330 Q360 320 420 330 L408 400 Q360 416 312 400 Z" fill="#fff"/>
-<ellipse cx="360" cy="330" rx="60" ry="16" fill="#d8312c"/>
-<g fill="#e3a24a">
-<path d="M96 300 C90 250 150 230 186 250 C222 268 222 320 190 340 C150 360 100 340 96 300 Z"/>
-<path d="M190 230 C200 180 270 170 296 200 C322 232 300 276 262 282 C224 288 182 268 190 230 Z"/>
-<path d="M160 380 C150 336 210 320 246 334 C286 350 288 396 252 412 C214 428 168 416 160 380 Z"/>
-<path d="M230 330 C236 296 290 290 312 312 C334 336 316 372 284 376 C252 380 226 360 230 330 Z"/>
+<g fill="#f2c9b8" opacity=".75" filter="url(#blur1)">
+  <circle cx="120" cy="268" r="5"/><circle cx="160" cy="236" r="4"/><circle cx="214" cy="214" r="5"/><circle cx="270" cy="204" r="4"/>
+  <circle cx="326" cy="206" r="5"/><circle cx="380" cy="222" r="4"/><circle cx="420" cy="246" r="4"/><circle cx="104" cy="306" r="4"/>
+  <circle cx="190" cy="246" r="3"/><circle cx="300" cy="228" r="3"/><circle cx="360" cy="246" r="3"/><circle cx="240" cy="226" r="3"/>
 </g>
-<g fill="#b8752a" stroke="none">
-<circle cx="130" cy="280" r="5"/><circle cx="160" cy="300" r="4"/><circle cx="146" cy="324" r="5"/><circle cx="184" cy="290" r="4"/>
-<circle cx="230" cy="214" r="5"/><circle cx="262" cy="230" r="4"/><circle cx="244" cy="256" r="5"/><circle cx="276" cy="206" r="4"/>
-<circle cx="200" cy="368" r="5"/><circle cx="226" cy="390" r="4"/><circle cx="246" cy="364" r="4"/>
-<circle cx="268" cy="324" r="5"/><circle cx="292" cy="346" r="4"/>
+''' + shine('M96 258 C150 192 300 166 410 202', 10, .45) + '''
+<ellipse cx="100" cy="316" rx="38" ry="42" fill="#7a2a16" transform="rotate(18 100 316)"/>
+<ellipse cx="102" cy="314" rx="31" ry="35" fill="url(#marbled)" transform="rotate(18 100 316)"/>
+''' + ''.join(f'''
+<ellipse cx="{x}" cy="{y + 6}" rx="58" ry="40" fill="#6e2512"/>
+<ellipse cx="{x}" cy="{y}" rx="58" ry="40" fill="url(#kraka)"/>
+<ellipse cx="{x + 4}" cy="{y - 3}" rx="47" ry="31" fill="url(#marbled)"/>
+<g fill="#fbe6dc" opacity=".9" filter="url(#blur1)">
+  <circle cx="{x - 14}" cy="{y - 10}" r="7"/><circle cx="{x + 16}" cy="{y + 6}" r="6"/><circle cx="{x + 10}" cy="{y - 16}" r="4"/>
+  <circle cx="{x - 16}" cy="{y + 10}" r="4"/><circle cx="{x + 26}" cy="{y - 6}" r="3"/></g>''' for x, y in [(250, 378), (382, 384)]),
+    defs='''
+<linearGradient id="kraka" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8462e"/><stop offset=".5" stop-color="#8e2f1c"/><stop offset="1" stop-color="#5a1a0c"/></linearGradient>
+<radialGradient id="marbled" cx=".45" cy=".4" r=".75"><stop offset="0" stop-color="#e79a8c"/><stop offset=".7" stop-color="#c76a5c"/><stop offset="1" stop-color="#a24c3f"/></radialGradient>
+''')
+
+ART['steak'] = svg('''
+<rect x="40" y="250" width="432" height="180" rx="24" fill="url(#brett)" filter="url(#grain)"/>
+<g stroke="#8a5a2c" stroke-width="3" opacity=".35" fill="none">
+  <path d="M60 290 Q256 280 452 296 M56 330 Q256 322 456 336 M60 372 Q256 362 452 378 M66 408 Q256 400 446 412"/>
 </g>
-''')
-
-ART['wasser'] = svg(f'''
-<path d="M216 70 L296 70 L296 112 Q340 140 340 196 L340 410 Q340 440 310 440 L202 440 Q172 440 172 410 L172 196 Q172 140 216 112 Z" fill="#d7eefb"/>
-<path d="M178 230 L334 230 L334 408 Q334 432 308 432 L204 432 Q178 432 178 408 Z" fill="#7fc6ef" stroke="none"/>
-<rect x="206" y="42" width="100" height="40" rx="8" fill="#1f6fb2"/>
-<rect x="172" y="276" width="168" height="74" fill="#ffffff"/>
-<path d="M256 288 C246 304 238 314 238 324 a18 18 0 0 0 36 0 C274 314 266 304 256 288 Z" fill="#2c8fd6"/>
-{hl('M200 160 Q194 196 196 260 M198 370 L198 410', 10, .7)}
-<g fill="#fff" stroke="none" opacity=".8"><circle cx="300" cy="380" r="6"/><circle cx="284" cy="404" r="4"/><circle cx="310" cy="250" r="5"/></g>
-''')
-
-ART['softdrink'] = svg(f'''
-<path d="M300 70 L330 70 L292 210" fill="none" stroke="#e23b3b" stroke-width="14"/>
-<path d="M300 70 L330 70 L292 210" fill="none" stroke="{INK}" stroke-width="0"/>
-<path d="M150 150 L362 150 L334 440 L178 440 Z" fill="#eef7fb"/>
-<path d="M160 200 L352 200 L332 432 L180 432 Z" fill="#6b2f17" stroke="none"/>
-<path d="M162 200 L350 200" stroke="#c9875a" stroke-width="10"/>
-<g fill="#e9f6fd" opacity=".95"><rect x="190" y="214" width="56" height="50" rx="10" transform="rotate(-12 218 239)"/><rect x="262" y="226" width="56" height="50" rx="10" transform="rotate(10 290 251)"/></g>
-<g fill="#d79c73" stroke="none" opacity=".9"><circle cx="210" cy="330" r="6"/><circle cx="236" cy="370" r="5"/><circle cx="290" cy="320" r="6"/><circle cx="300" cy="380" r="4"/><circle cx="262" cy="300" r="4"/></g>
-{hl('M176 170 L196 420', 10, .6)}
-''')
-
-ART['longdrink'] = svg(f'''
-<defs><linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb52e"/><stop offset=".6" stop-color="#ff7a1f"/><stop offset="1" stop-color="#d9262c"/></linearGradient></defs>
-<path d="M300 60 L270 260" stroke="#3aa655" stroke-width="14"/>
-<path d="M178 110 L334 110 L320 440 L192 440 Z" fill="#fdf2e6"/>
-<path d="M184 160 L328 160 L318 432 L194 432 Z" fill="url(#sun)" stroke="none"/>
-<g fill="#fff6ea" opacity=".9"><rect x="200" y="174" width="50" height="46" rx="9" transform="rotate(-10 225 197)"/><rect x="262" y="210" width="50" height="46" rx="9" transform="rotate(12 287 233)"/><rect x="214" y="250" width="50" height="46" rx="9" transform="rotate(4 239 273)"/></g>
-<circle cx="190" cy="110" r="46" fill="#9bd24a"/>
-<circle cx="190" cy="110" r="32" fill="#c8ee86" stroke="none"/>
-<path d="M190 82 L190 138 M162 110 L218 110 M170 90 L210 130 M170 130 L210 90" stroke="#9bd24a" stroke-width="4"/>
-{hl('M200 180 L210 420', 9, .5)}
-''')
-
-ART['bier'] = svg(f'''
-<defs><linearGradient id="beer" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc93a"/><stop offset="1" stop-color="#e48b00"/></linearGradient></defs>
-<path d="M340 200 L392 200 Q430 200 430 244 L430 330 Q430 372 392 372 L340 372" fill="none" stroke="{INK}" stroke-width="40"/>
-<path d="M340 200 L392 200 Q430 200 430 244 L430 330 Q430 372 392 372 L340 372" fill="none" stroke="#f3f0e6" stroke-width="22"/>
-<path d="M120 170 L352 170 L344 420 Q342 442 318 442 L154 442 Q130 442 128 420 Z" fill="url(#beer)"/>
-<g fill="#fff3c4" stroke="none" opacity=".85"><circle cx="190" cy="300" r="7"/><circle cx="214" cy="356" r="5"/><circle cx="276" cy="330" r="6"/><circle cx="300" cy="390" r="4"/><circle cx="240" cy="260" r="4"/></g>
-<path d="M112 186 C92 150 120 112 158 122 C170 88 222 82 240 110 C262 80 316 86 326 120 C366 112 388 152 362 186 C340 206 136 210 112 186 Z" fill="#fffdf6"/>
-<path d="M160 176 L160 420 M216 182 L216 424 M272 182 L272 424" stroke="#fff" stroke-width="8" opacity=".35"/>
-<circle cx="108" cy="150" r="42" fill="#ffe14d"/>
-<circle cx="108" cy="150" r="28" fill="#fff4a8" stroke="none"/>
-<path d="M108 124 L108 176 M82 150 L134 150 M90 132 L126 168 M90 168 L126 132" stroke="#ffe14d" stroke-width="4"/>
-''')
-
-ART['sekt'] = svg(f'''
-<g transform="rotate(-10 190 300)">
-<path d="M160 80 L240 80 Q246 210 214 250 Q200 262 186 250 Q154 210 160 80 Z" fill="#fff8e4"/>
-<path d="M163 130 L237 130 Q238 210 212 240 Q200 250 188 240 Q162 210 163 130 Z" fill="#f6d35b" stroke="none"/>
-<path d="M200 256 L200 400" stroke-width="12"/><ellipse cx="200" cy="410" rx="48" ry="12" fill="#fff8e4"/>
-<g fill="#fffbe9" stroke="none"><circle cx="190" cy="200" r="5"/><circle cx="210" cy="170" r="4"/><circle cx="198" cy="150" r="3"/></g>
+<path d="M40 404 L472 404 L472 406 Q472 430 448 430 L64 430 Q40 430 40 406 Z" fill="#7a4a20" opacity=".6"/>
+<path d="M92 252 C90 170 214 132 310 152 C408 172 452 232 432 304 C412 380 304 404 216 388 C132 374 94 330 92 252 Z"
+  fill="#3a1a0e" opacity=".55" filter="url(#blur8)" transform="translate(6 14)"/>
+<path d="M92 252 C90 170 214 132 310 152 C408 172 452 232 432 304 C412 380 304 404 216 388 C132 374 94 330 92 252 Z" fill="url(#fett)"/>
+<g filter="url(#grain)">
+  <path d="M116 254 C116 188 216 164 300 178 C384 192 418 238 404 296 C388 352 302 374 224 362 C152 350 116 314 116 254 Z" fill="url(#fleisch)"/>
 </g>
-<g transform="rotate(10 322 300)">
-<path d="M272 80 L352 80 Q358 210 326 250 Q312 262 298 250 Q266 210 272 80 Z" fill="#fff8e4"/>
-<path d="M275 130 L349 130 Q350 210 324 240 Q312 250 300 240 Q274 210 275 130 Z" fill="#f6d35b" stroke="none"/>
-<path d="M312 256 L312 400" stroke-width="12"/><ellipse cx="312" cy="410" rx="48" ry="12" fill="#fff8e4"/>
-<g fill="#fffbe9" stroke="none"><circle cx="304" cy="196" r="5"/><circle cx="322" cy="168" r="4"/><circle cx="312" cy="150" r="3"/></g>
+<g stroke="#2b0f05" stroke-width="16" stroke-linecap="round" opacity=".75" filter="url(#blur3)">
+  <path d="M154 222 L236 304 M200 190 L306 296 M262 180 L366 284 M324 190 L396 262 M144 296 L180 332"/>
 </g>
-<path d="M256 52 L256 22 M226 62 L208 38 M286 62 L304 38" stroke="#f0b21c" stroke-width="10"/>
+''' + shine('M150 208 C200 182 280 176 340 190', 10, .35, 'blur8') + '''
+<path d="M282 190 C322 170 352 170 372 186" fill="none" stroke="#2f6b2a" stroke-width="5" stroke-linecap="round"/>
+<g fill="#4c8f3e">
+  <ellipse cx="300" cy="176" rx="14" ry="4.5" transform="rotate(-30 300 176)"/><ellipse cx="324" cy="170" rx="14" ry="4.5" transform="rotate(20 324 170)"/>
+  <ellipse cx="346" cy="174" rx="14" ry="4.5" transform="rotate(-25 346 174)"/><ellipse cx="312" cy="190" rx="14" ry="4.5" transform="rotate(30 312 190)"/>
+  <ellipse cx="336" cy="190" rx="14" ry="4.5" transform="rotate(-20 336 190)"/><ellipse cx="360" cy="186" rx="12" ry="4" transform="rotate(25 360 186)"/>
+</g>
+<g fill="#f3efe4"><circle cx="190" cy="330" r="3"/><circle cx="262" cy="346" r="2.5"/><circle cx="350" cy="320" r="3"/><circle cx="220" cy="240" r="2.5"/></g>
+''', shadow=(256, 440, 220, 14), defs='''
+<linearGradient id="brett" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8a868"/><stop offset="1" stop-color="#b07c40"/></linearGradient>
+<radialGradient id="fett" cx=".45" cy=".35" r=".8"><stop offset="0" stop-color="#f6e4c4"/><stop offset="1" stop-color="#cf9e64"/></radialGradient>
+<radialGradient id="fleisch" cx=".45" cy=".35" r=".8"><stop offset="0" stop-color="#a65a33"/><stop offset=".6" stop-color="#7c3b1d"/><stop offset="1" stop-color="#4f210d"/></radialGradient>
 ''')
 
-ART['shot'] = svg(f'''
-<path d="M170 210 L342 210 L322 430 Q320 444 304 444 L208 444 Q192 444 190 430 Z" fill="#fdf6ec"/>
-<path d="M178 268 L334 268 L320 410 L192 410 Z" fill="#d9822b" stroke="none"/>
-<path d="M178 268 L334 268" stroke="#f3b067" stroke-width="10"/>
-<path d="M194 410 L318 410 L316 436 L196 436 Z" fill="#efe4d6" stroke="none" opacity=".9"/>
-{hl('M196 232 L210 400', 10, .6)}
-<path d="M300 200 L392 140 A70 70 0 0 1 352 236 Z" fill="#9bd24a"/>
-<path d="M314 204 L384 158 A52 52 0 0 1 350 222 Z" fill="#c8ee86" stroke="none"/>
+FRY = '''<g transform="rotate({r} {cx} {cy})"><rect x="{x}" y="{y}" width="30" height="{h}" rx="5" fill="url(#fry)"/>
+<rect x="{x}" y="{y}" width="30" height="16" rx="5" fill="#c9832a" opacity=".55"/>
+<rect x="{xs}" y="{ys}" width="6" height="{hs}" rx="3" fill="#fff6c8" opacity=".55"/></g>'''
+
+
+def fry(x, y, h, r):
+    return FRY.format(r=r, cx=x + 15, cy=y + h / 2, x=x, y=y, h=h, xs=x + 6, ys=y + 20, hs=h - 40)
+
+
+ART['pommes'] = svg(
+    fry(170, 110, 190, -14) + fry(212, 88, 210, -5) + fry(254, 80, 220, 4) + fry(296, 96, 204, 12)
+    + fry(236, 120, 180, -1) + fry(190, 138, 170, 8) + fry(276, 140, 170, -9) + '''
+<path d="M136 236 Q256 272 376 236 L342 442 L170 442 Z" fill="url(#tuete)"/>
+<path d="M136 236 Q256 272 376 236 L372 258 Q256 292 140 258 Z" fill="#a51c1c" opacity=".6"/>
+<path d="M164 360 Q256 330 348 360" fill="none" stroke="#fff" stroke-width="16" opacity=".9"/>
+''' + shine('M160 270 L182 430', 12, .35, 'blur8') + shine('M346 270 L334 430', 10, .2, 'blur8'), defs='''
+<linearGradient id="fry" x1="0" x2="1"><stop offset="0" stop-color="#e8a83a"/><stop offset=".45" stop-color="#ffd967"/><stop offset="1" stop-color="#d9932c"/></linearGradient>
+<linearGradient id="tuete" x1="0" x2="1"><stop offset="0" stop-color="#a81b1b"/><stop offset=".35" stop-color="#e2392f"/><stop offset=".7" stop-color="#d22a24"/><stop offset="1" stop-color="#8f1515"/></linearGradient>
 ''')
 
-ART['pfand'] = svg(f'''
-<path d="M176 150 L336 150 L314 420 L198 420 Z" fill="#e5f3fb"/>
-<path d="M170 150 L342 150" stroke-width="14"/>
-{hl('M196 176 L212 396', 10, .7)}
-<g fill="none" stroke="#2e9d57" stroke-width="22">
-<path d="M120 300 A140 140 0 0 1 300 136"/>
-<path d="M392 230 A140 140 0 0 1 212 394"/>
-</g>
-<g fill="#2e9d57" stroke="none">
-<path d="M282 104 L336 140 L280 170 Z"/>
-<path d="M230 360 L176 396 L232 426 Z"/>
-</g>
+NUGGET = '''<path d="{d}" fill="url(#nug)" filter="url(#crumb)"/>'''
+ART['nuggets'] = svg('''
+<path d="M300 328 Q360 318 420 328 L408 404 Q360 422 312 404 Z" fill="url(#napf)"/>
+<ellipse cx="360" cy="328" rx="60" ry="17" fill="#f2f2ec"/>
+<ellipse cx="360" cy="330" rx="52" ry="12" fill="url(#ketchup)"/>
+''' + shine('M330 326 Q350 322 366 324', 5, .8, 'blur1') + ''.join(NUGGET.format(d=d) for d in [
+    'M96 300 C90 250 150 230 186 250 C222 268 222 320 190 340 C150 360 100 340 96 300 Z',
+    'M190 230 C200 180 270 170 296 200 C322 232 300 276 262 282 C224 288 182 268 190 230 Z',
+    'M160 380 C150 336 210 320 246 334 C286 350 288 396 252 412 C214 428 168 416 160 380 Z',
+    'M230 330 C236 296 290 290 312 312 C334 336 316 372 284 376 C252 380 226 360 230 330 Z']) + '''
+''' + shine('M120 270 C140 256 160 254 176 262', 7, .45) + shine('M214 208 C232 192 256 190 272 198', 7, .45)
+    + shine('M182 352 C200 340 220 340 236 346', 7, .4) + shine('M250 314 C264 304 282 304 296 310', 6, .4), defs='''
+<radialGradient id="nug" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f4c56d"/><stop offset=".6" stop-color="#d9932f"/><stop offset="1" stop-color="#a8641a"/></radialGradient>
+<linearGradient id="napf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfcfc6"/><stop offset=".4" stop-color="#ffffff"/><stop offset="1" stop-color="#bdbdb4"/></linearGradient>
+<radialGradient id="ketchup" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#e5412d"/><stop offset="1" stop-color="#8f140c"/></radialGradient>
 ''')
 
-ART['frei'] = svg(f'''
+# ---------------------------------------------------------------- Getränke
+
+ART['wasser'] = svg('''
+<path d="M216 70 L296 70 L296 112 Q342 140 342 196 L342 412 Q342 442 312 442 L200 442 Q170 442 170 412 L170 196 Q170 140 216 112 Z" fill="url(#pet)"/>
+<path d="M176 226 L336 226 L336 410 Q336 436 310 436 L202 436 Q176 436 176 410 Z" fill="url(#water)"/>
+<path d="M176 226 L336 226" stroke="#e8f7ff" stroke-width="5" opacity=".9"/>
+<g stroke="#ffffff" stroke-width="3" opacity=".35" fill="none">
+  <path d="M172 180 Q256 196 340 180 M172 380 Q256 396 340 380 M172 404 Q256 420 340 404"/>
+</g>
+<rect x="170" y="272" width="172" height="78" fill="url(#label)"/>
+<path d="M170 272 L342 272 M170 350 L342 350" stroke="#1b5f9a" stroke-width="3" opacity=".5"/>
+<path d="M256 284 C244 302 236 312 236 324 a20 20 0 0 0 40 0 C276 312 268 302 256 284 Z" fill="url(#drop)"/>
+<rect x="204" y="38" width="104" height="44" rx="8" fill="url(#cap)"/>
+<g stroke="#0f4a80" stroke-width="3" opacity=".6">
+  <path d="M216 42 V78 M228 42 V78 M240 42 V78 M252 42 V78 M264 42 V78 M276 42 V78 M288 42 V78 M300 42 V78"/>
+</g>
+''' + shine('M196 150 Q188 200 190 262', 10, .85) + shine('M192 364 L192 418', 8, .7) + shine('M322 160 Q328 200 326 260', 5, .4)
+    + bubbles([(300, 386, 5), (286, 404, 3.5), (312, 246, 4), (210, 400, 3), (230, 250, 3)], '#ffffff', .7), defs='''
+<linearGradient id="pet" x1="0" x2="1"><stop offset="0" stop-color="#9fc6dc"/><stop offset=".2" stop-color="#eaf6fc"/>
+  <stop offset=".6" stop-color="#d4ecf7"/><stop offset="1" stop-color="#8db7cf"/></linearGradient>
+<linearGradient id="water" x1="0" x2="1"><stop offset="0" stop-color="#4fa5d8"/><stop offset=".3" stop-color="#8fd0f2"/>
+  <stop offset=".7" stop-color="#6dbbe8"/><stop offset="1" stop-color="#3b8cc2"/></linearGradient>
+<linearGradient id="label" x1="0" x2="1"><stop offset="0" stop-color="#d9e6ee"/><stop offset=".3" stop-color="#ffffff"/>
+  <stop offset=".8" stop-color="#f2f6f8"/><stop offset="1" stop-color="#c8d6de"/></linearGradient>
+<radialGradient id="drop" cx=".4" cy=".6" r=".8"><stop offset="0" stop-color="#7cc4f0"/><stop offset="1" stop-color="#1767a8"/></radialGradient>
+<linearGradient id="cap" x1="0" x2="1"><stop offset="0" stop-color="#0f4f8a"/><stop offset=".4" stop-color="#3b8ad0"/><stop offset="1" stop-color="#0d4072"/></linearGradient>
+''')
+
+ART['softdrink'] = svg('''
+<path d="M300 66 L330 66 L292 220" fill="none" stroke="url(#strohhalm)" stroke-width="14" stroke-linecap="round"/>
+<path d="M164 206 L348 206 L332 432 L180 432 Z" fill="url(#cola)"/>
+<path d="M164 206 L348 206 L346 222 L166 222 Z" fill="#c78a5a" opacity=".8"/>
+''' + ice(190, 214, 58, -12) + ice(264, 228, 56, 10) + ice(222, 262, 50, 4)
+    + bubbles([(210, 330, 4), (236, 370, 3.5), (290, 320, 4), (300, 384, 3), (262, 300, 3), (250, 400, 2.5), (310, 350, 2.5)], '#e7b48f', .75) + '''
+<path d="M146 148 L366 148 L336 442 L176 442 Z" fill="url(#glass)"/>
+<path d="M146 148 L366 148" stroke="url(#glassEdge)" stroke-width="5"/>
+<path d="M176 432 L336 432 L334 446 L178 446 Z" fill="#cfe0e5" opacity=".9"/>
+''' + shine('M170 170 L192 420', 12, .7) + shine('M340 170 L326 400', 6, .35)
+    + drops([(200, 250, 4), (322, 300, 5), (214, 360, 3.5), (310, 410, 4), (330, 236, 3)]), defs=GLASS + '''
+<linearGradient id="cola" x1="0" x2="1"><stop offset="0" stop-color="#2a0f05"/><stop offset=".35" stop-color="#6b2b12"/>
+  <stop offset=".7" stop-color="#4a1c0a"/><stop offset="1" stop-color="#1f0a03"/></linearGradient>
+<linearGradient id="strohhalm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a4a"/><stop offset="1" stop-color="#c41f1f"/></linearGradient>
+''')
+
+ART['longdrink'] = svg('''
+<path d="M300 58 L272 270" stroke="#2f9a4c" stroke-width="13" stroke-linecap="round"/>
+<path d="M186 158 L326 158 L316 432 L196 432 Z" fill="url(#sunrise)"/>
+''' + ice(196, 168, 52, -10) + ice(258, 204, 52, 12) + ice(210, 246, 50, 4) + '''
+<path d="M176 108 L336 108 L322 442 L190 442 Z" fill="url(#glass)"/>
+<path d="M176 108 L336 108" stroke="url(#glassEdge)" stroke-width="5"/>
+<path d="M190 432 L322 432 L320 446 L192 446 Z" fill="#cfe0e5" opacity=".9"/>
+<circle cx="188" cy="112" r="48" fill="url(#limeSkin)"/>
+<circle cx="188" cy="112" r="40" fill="#eaf6c6"/>
+<circle cx="188" cy="112" r="35" fill="url(#limeFlesh)"/>
+<g stroke="#eaf6c6" stroke-width="3">
+  <path d="M188 77 L188 147 M153 112 L223 112 M163 87 L213 137 M163 137 L213 87"/>
+</g>
+''' + shine('M198 140 L210 420', 10, .6) + shine('M318 150 L308 410', 5, .3)
+    + drops([(206, 330, 4), (302, 290, 4.5), (300, 404, 3.5), (214, 410, 3)]), defs=GLASS + '''
+<linearGradient id="sunrise" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc23a"/><stop offset=".55" stop-color="#ff7a1f"/>
+  <stop offset=".85" stop-color="#e2352a"/><stop offset="1" stop-color="#b81d24"/></linearGradient>
+<radialGradient id="limeSkin" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#9ad04a"/><stop offset="1" stop-color="#4f8f1d"/></radialGradient>
+<radialGradient id="limeFlesh" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#e3f59d"/><stop offset="1" stop-color="#a7d44b"/></radialGradient>
+''')
+
+ART['bier'] = svg('''
+<path d="M342 196 L392 196 Q436 196 436 244 L436 330 Q436 378 392 378 L342 378" fill="none" stroke="url(#henkel)" stroke-width="30" stroke-linecap="round"/>
+<path d="M126 172 L350 172 L342 422 Q340 444 316 444 L160 444 Q136 444 134 422 Z" fill="url(#beer)"/>
+''' + bubbles([(176, 300, 3), (178, 340, 2.5), (180, 380, 3), (300, 260, 3), (302, 300, 2.5), (304, 350, 3),
+               (240, 240, 2.5), (244, 300, 3), (246, 360, 2.5), (210, 410, 2), (270, 400, 2.5)], '#fff1b8', .85) + '''
+<path d="M116 172 L360 172 L350 432 Q348 452 322 452 L154 452 Q128 452 126 432 Z" fill="url(#glass)"/>
+<g stroke="#ffffff" stroke-width="7" opacity=".3">
+  <path d="M168 196 L172 428 M222 198 L224 432 M276 198 L276 432 M320 196 L316 428"/>
+</g>
+<path d="M126 434 L350 434 L348 452 L128 452 Z" fill="#e5c26a" opacity=".55"/>
+<g>
+  <path d="M110 190 C88 150 118 108 160 120 C172 84 228 78 246 108 C268 76 324 82 334 118 C376 108 398 152 370 190
+           C346 212 134 214 110 190 Z" fill="url(#schaum)"/>
+  <g fill="#ffffff" opacity=".9" filter="url(#blur1)">
+    <circle cx="160" cy="140" r="10"/><circle cx="228" cy="116" r="12"/><circle cx="300" cy="126" r="10"/><circle cx="346" cy="152" r="8"/>
+  </g>
+  <g fill="#e8dcc0" opacity=".7">
+    <circle cx="140" cy="178" r="5"/><circle cx="200" cy="168" r="4"/><circle cx="262" cy="176" r="5"/><circle cx="322" cy="170" r="4"/><circle cx="350" cy="186" r="3"/>
+  </g>
+</g>
+''' + shine('M142 210 L150 420', 12, .55) + shine('M338 214 L330 410', 6, .3)
+    + drops([(160, 260, 4), (318, 300, 5), (180, 360, 3.5), (300, 400, 4), (226, 410, 3), (330, 240, 3)]) + '''
+<circle cx="112" cy="168" r="44" fill="url(#zitroneSchale)"/>
+<circle cx="112" cy="168" r="37" fill="#fff8d6"/>
+<circle cx="112" cy="168" r="32" fill="url(#zitrone)"/>
+<g stroke="#fff8d6" stroke-width="3"><path d="M112 136 L112 200 M80 168 L144 168 M89 145 L135 191 M89 191 L135 145"/></g>
+''', defs=GLASS + '''
+<linearGradient id="beer" x1="0" x2="1"><stop offset="0" stop-color="#a85800"/><stop offset=".25" stop-color="#e8960a"/>
+  <stop offset=".55" stop-color="#f9b425"/><stop offset=".8" stop-color="#e08a06"/><stop offset="1" stop-color="#9c5000"/></linearGradient>
+<linearGradient id="henkel" x1="0" x2="1"><stop offset="0" stop-color="#c9dbe1"/><stop offset=".5" stop-color="#ffffff"/><stop offset="1" stop-color="#9fb8c0"/></linearGradient>
+<radialGradient id="schaum" cx=".45" cy=".3" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#fbf4e2"/><stop offset="1" stop-color="#e2d3ad"/></radialGradient>
+<radialGradient id="zitroneSchale" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffe76a"/><stop offset="1" stop-color="#e0b400"/></radialGradient>
+<radialGradient id="zitrone" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#fff6b0"/><stop offset="1" stop-color="#f2d33c"/></radialGradient>
+''')
+
+
+def flute(cx, rot):
+    return f'''<g transform="rotate({rot} {cx} 300)">
+<path d="M{cx - 38} 92 L{cx + 38} 92 Q{cx + 44} 214 {cx + 14} 252 Q{cx} 264 {cx - 14} 252 Q{cx - 44} 214 {cx - 38} 92 Z" fill="url(#glass)"/>
+<path d="M{cx - 35} 138 L{cx + 35} 138 Q{cx + 37} 214 {cx + 12} 244 Q{cx} 254 {cx - 12} 244 Q{cx - 37} 214 {cx - 35} 138 Z" fill="url(#sekt)"/>
+<path d="M{cx - 35} 138 L{cx + 35} 138" stroke="#fff6cf" stroke-width="4"/>
+{bubbles([(cx - 8, 220, 3.5), (cx + 6, 196, 3), (cx - 4, 172, 2.5), (cx + 10, 160, 2), (cx - 12, 150, 2), (cx + 2, 236, 2.5)], '#fffbe6', .95)}
+<path d="M{cx - 38} 92 L{cx + 38} 92" stroke="url(#glassEdge)" stroke-width="4"/>
+<path d="M{cx - 4} 256 L{cx - 4} 404 L{cx + 4} 404 L{cx + 4} 256 Z" fill="url(#glassEdge)"/>
+<ellipse cx="{cx}" cy="410" rx="50" ry="12" fill="url(#glass)"/>
+<ellipse cx="{cx}" cy="408" rx="50" ry="10" fill="none" stroke="#9fb8c0" stroke-width="2"/>
+{shine(f'M{cx - 26} 110 Q{cx - 30} 180 {cx - 16} 230', 7, .8)}
+</g>'''
+
+
+ART['sekt'] = svg(flute(194, -10) + flute(318, 10) + '''
+<g stroke="#f2c230" stroke-width="7" stroke-linecap="round" filter="url(#blur1)">
+  <path d="M256 54 L256 22 M224 64 L206 38 M288 64 L306 38"/>
+</g>
+''', defs=GLASS + '''
+<linearGradient id="sekt" x1="0" x2="1"><stop offset="0" stop-color="#d9a93a"/><stop offset=".4" stop-color="#f8de7a"/>
+  <stop offset="1" stop-color="#d7a530"/></linearGradient>
+''')
+
+ART['shot'] = svg('''
+<path d="M180 268 L332 268 L320 404 L192 404 Z" fill="url(#korn)"/>
+<path d="M180 268 L332 268" stroke="#f6c07a" stroke-width="6"/>
+<path d="M168 206 L344 206 L324 434 Q322 448 306 448 L206 448 Q190 448 188 434 Z" fill="url(#glass)"/>
+<path d="M190 404 L322 404 L320 446 L192 446 Z" fill="url(#boden)"/>
+<path d="M168 206 L344 206" stroke="url(#glassEdge)" stroke-width="5"/>
+''' + shine('M192 226 L206 396', 11, .75) + shine('M326 230 L314 390', 5, .35) + '''
+<path d="M298 200 L394 138 A72 72 0 0 1 352 240 Z" fill="url(#limeSkin)"/>
+<path d="M310 202 L388 152 A58 58 0 0 1 352 228 Z" fill="url(#limeFlesh)"/>
+<path d="M310 202 L372 182 M310 202 L360 214" stroke="#eaf6c6" stroke-width="3"/>
+''', defs=GLASS + '''
+<linearGradient id="korn" x1="0" x2="1"><stop offset="0" stop-color="#a24e0e"/><stop offset=".4" stop-color="#e3922f"/>
+  <stop offset="1" stop-color="#9a470b"/></linearGradient>
+<linearGradient id="boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6f0f2" stop-opacity=".9"/><stop offset="1" stop-color="#9fb8c0"/></linearGradient>
+<radialGradient id="limeSkin" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#9ad04a"/><stop offset="1" stop-color="#4f8f1d"/></radialGradient>
+<radialGradient id="limeFlesh" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#e3f59d"/><stop offset="1" stop-color="#a7d44b"/></radialGradient>
+''')
+
+# ---------------------------------------------------------- Sonderkacheln
+
+ART['pfand'] = svg('''
+<path d="M172 146 L340 146 L316 424 L196 424 Z" fill="url(#becher)"/>
+<g stroke="#ffffff" stroke-width="4" opacity=".5" fill="none">
+  <path d="M176 196 L336 196 M182 260 L330 260 M188 330 L324 330"/>
+</g>
+<path d="M166 146 L346 146" stroke="#b9cdd4" stroke-width="12" stroke-linecap="round"/>
+''' + shine('M192 170 L210 400', 12, .75) + '''
+<g fill="none" stroke-width="24" stroke-linecap="round">
+  <path d="M118 300 A142 142 0 0 1 296 136" stroke="url(#pfeil)"/>
+  <path d="M394 228 A142 142 0 0 1 216 392" stroke="url(#pfeil)"/>
+</g>
+<path d="M276 100 L338 138 L274 172 Z" fill="#2c9450"/>
+<path d="M236 356 L174 394 L238 428 Z" fill="#2c9450"/>
+''', defs='''
+<linearGradient id="becher" x1="0" x2="1"><stop offset="0" stop-color="#a9c3cc" stop-opacity=".85"/><stop offset=".25" stop-color="#f4fbfd"/>
+  <stop offset=".7" stop-color="#e3f1f5"/><stop offset="1" stop-color="#93b1bb" stop-opacity=".9"/></linearGradient>
+<linearGradient id="pfeil" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5cc27c"/><stop offset="1" stop-color="#1f7a3e"/></linearGradient>
+''')
+
+
+def coin(cx, cy):
+    return f'''<ellipse cx="{cx}" cy="{cy + 16}" rx="86" ry="26" fill="#a87410"/>
+<rect x="{cx - 86}" y="{cy}" width="172" height="16" fill="url(#rand)"/>
+<ellipse cx="{cx}" cy="{cy}" rx="86" ry="26" fill="url(#muenze)"/>
+<ellipse cx="{cx}" cy="{cy}" rx="66" ry="18" fill="none" stroke="#c9900f" stroke-width="3" opacity=".7"/>'''
+
+
+ART['frei'] = svg('''
 <g transform="rotate(-8 230 230)">
-<rect x="70" y="140" width="320" height="170" rx="16" fill="#7cc3a0"/>
-<rect x="92" y="160" width="276" height="130" rx="10" fill="none" stroke="#4e9b77" stroke-width="6"/>
-<circle cx="230" cy="225" r="46" fill="#e9f7ef" stroke="#4e9b77" stroke-width="6"/>
-<text x="230" y="250" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold" font-size="70" fill="#2b7a55" stroke="none">€</text>
+  <rect x="64" y="136" width="332" height="176" rx="12" fill="#2f6b4c" opacity=".35" filter="url(#blur8)" transform="translate(6 10)"/>
+  <rect x="64" y="136" width="332" height="176" rx="12" fill="url(#schein)"/>
+  <rect x="84" y="154" width="292" height="140" rx="8" fill="none" stroke="#3f8a64" stroke-width="3" opacity=".7"/>
+  <g stroke="#5aa883" stroke-width="2" opacity=".5" fill="none">
+    <path d="M90 180 Q160 160 230 180 T370 180 M90 270 Q160 250 230 270 T370 270"/>
+  </g>
+  <circle cx="230" cy="224" r="46" fill="url(#siegel)"/>
+  <text x="230" y="248" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold" font-size="66" fill="#246b47">€</text>
+  <path d="M74 146 L386 146" stroke="#ffffff" stroke-width="5" opacity=".35" filter="url(#blur1)"/>
 </g>
-<g>
-<ellipse cx="350" cy="420" rx="86" ry="26" fill="#d99a1e"/>
-<rect x="264" y="378" width="172" height="42" fill="#f4c03a" stroke="none"/>
-<path d="M264 378 L264 420 M436 378 L436 420" />
-<ellipse cx="350" cy="378" rx="86" ry="26" fill="#ffd75a"/>
-<ellipse cx="350" cy="340" rx="86" ry="26" fill="#f4c03a"/>
-<rect x="264" y="300" width="172" height="40" fill="#f4c03a" stroke="none"/>
-<path d="M264 300 L264 340 M436 300 L436 340"/>
-<ellipse cx="350" cy="300" rx="86" ry="26" fill="#ffd75a"/>
-<text x="350" y="314" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold" font-size="40" fill="#b77f10" stroke="none">€</text>
-</g>
+''' + coin(350, 384) + coin(350, 346) + coin(350, 308) + '''
+<text x="350" y="322" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-weight="bold" font-size="38" fill="#a86f08">€</text>
+''' + shine('M290 300 Q330 290 370 294', 6, .7, 'blur1'), defs='''
+<linearGradient id="schein" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6dcbf"/><stop offset=".5" stop-color="#7cc4a0"/><stop offset="1" stop-color="#5aa883"/></linearGradient>
+<radialGradient id="siegel" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f3fbf6"/><stop offset="1" stop-color="#c7e6d5"/></radialGradient>
+<radialGradient id="muenze" cx=".4" cy=".35" r=".85"><stop offset="0" stop-color="#fff0a8"/><stop offset=".5" stop-color="#f4c23a"/><stop offset="1" stop-color="#c88f10"/></radialGradient>
+<linearGradient id="rand" x1="0" x2="1"><stop offset="0" stop-color="#b37d0e"/><stop offset=".4" stop-color="#f1c54a"/><stop offset="1" stop-color="#a06e0a"/></linearGradient>
 ''')
 
 os.makedirs(OUT, exist_ok=True)
@@ -239,7 +454,9 @@ for name, content in ART.items():
                     '--default-background-color=00000000', '--window-size=512,512',
                     '--force-device-scale-factor=1', f'--screenshot={dst}', 'file://' + src],
                    check=True, capture_output=True)
-from PIL import Image
+
+from PIL import Image  # noqa: E402
+
 for name in ART:
     path = os.path.join(OUT, name + '.png')
     im = Image.open(path).convert('RGBA')
