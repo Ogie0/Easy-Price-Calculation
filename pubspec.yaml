@@ -37,6 +37,7 @@ flutter:
     - assets/logo/jgc_logo.png
     - assets/articles/
     - assets/fonts/Roboto_LICENSE.txt
+    - assets/licenses/zxing-js_LICENSE.txt
 
   # Roboto mitliefern: Im Browser (iPhone) würde Flutter sie sonst aus dem
   # Internet laden – offline gäbe es dann keine Schrift.

@@ -19,8 +19,8 @@ Einmalig in GitHub unter **Settings → Pages** „Deploy from a branch“ mit
 `gh-pages` / `(root)` wählen. Danach ist die Kasse unter
 <https://ogie0.github.io/Easy-Price-Calculation/> erreichbar: in Safari öffnen,
 „Teilen“ → „Zum Home-Bildschirm“. Nach dem ersten Öffnen läuft sie ohne
-Internet (eigener Service Worker `web/sw.js`, Schriften und CanvasKit werden
-mitgeliefert). Lokal bauen:
+Internet (eigener Service Worker `web/sw.js`; Schriften, CanvasKit und der
+QR-Scanner `web/zxing` werden mitgeliefert). Lokal bauen:
 
 ```sh
 flutter build web --release --no-web-resources-cdn --base-href /Easy-Price-Calculation/

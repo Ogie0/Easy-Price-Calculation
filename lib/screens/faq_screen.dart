@@ -68,8 +68,8 @@ class FaqScreen extends StatelessWidget {
     (
       'Wie richte ich mehrere Kassen gleich ein?',
       'Auf einem Gerät alles einrichten, dann dort in den Einstellungen „Sortiment teilen“ '
-          'öffnen. Auf dem anderen Gerät in den Einstellungen „Sortiment übernehmen“ wählen und '
-          'den QR-Code scannen oder fotografieren. '
+          'öffnen. Auf dem anderen Gerät in den Einstellungen „Sortiment übernehmen“ und dann „Mit '
+          'der Kamera scannen“ wählen und die Kamera auf den QR-Code halten. '
           'Preise, Pfand, Reihenfolge und eigene Positionen werden übernommen, ganz ohne Internet. '
           'Eigene Fotos bleiben auf dem jeweiligen Gerät.',
     ),
@@ -132,6 +132,8 @@ class FaqScreen extends StatelessWidget {
       'Ja, als Web-App: In Safari https://ogie0.github.io/Easy-Price-Calculation/ öffnen, '
           'unten auf „Teilen“ tippen und „Zum Home-Bildschirm“ wählen. Danach startet die Kasse '
           'über das Symbol im Vollbild und funktioniert nach dem ersten Öffnen auch ohne Internet. '
+          'Im normalen Browser-Tab kosten Adress- und Werkzeugleiste Platz, dann muss man bei den '
+          'Kacheln eher scrollen. '
           'Unterschiede zur Android-App: keine Vibration beim Tippen; der Bildschirm bleibt nur '
           'auf aktuellen iOS-Versionen an. Wird das Symbol gelöscht, sind die Daten auf dem '
           'iPhone weg – dann einfach per QR-Code oder Screenshot neu übernehmen.',

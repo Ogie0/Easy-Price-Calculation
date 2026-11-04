@@ -150,9 +150,17 @@ void main() {
     // Smartphone hoch: 2 Spalten x 3 Reihen.
     final phone = GridFit.of(6, const Size(360, 470), padding: 12, spacing: 12);
     expect(phone.columns, 2);
-    // Kaum Platz: lieber scrollen als winzige Kacheln.
+    // Kaum Platz: lieber scrollen als winzige Kacheln, aber kompakte statt
+    // großer quadratischer Kacheln.
     final tiny = GridFit.of(6, const Size(360, 200), padding: 12, spacing: 12);
-    expect((tiny.columns, tiny.aspectRatio), (2, 1.0));
+    expect(tiny.columns, 2);
+    expect(162 / tiny.aspectRatio, closeTo(GridFit.compactTileHeight, 0.01));
+    // iPhone im Browser mit Hinweis „Neues Gerät?“: 3 Spalten, zwei Reihen
+    // (6 von 7 Kacheln) ohne Scrollen sichtbar.
+    final iphoneBrowser = GridFit.of(7, const Size(402, 256), padding: 12, spacing: 12);
+    expect(iphoneBrowser.columns, 3);
+    final tileHeight = 118 / iphoneBrowser.aspectRatio;
+    expect(2 * tileHeight + 12, lessThanOrEqualTo(256 - 24));
     // Unbegrenzte Höhe (z. B. in einer Scroll-Ansicht) bricht nicht.
     expect(GridFit.of(6, const Size(360, double.infinity), padding: 12, spacing: 12).columns, 2);
   });

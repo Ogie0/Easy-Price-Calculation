@@ -24,6 +24,13 @@ Future<void> main() async {
   // Die Schrift Roboto ist mitgeliefert (für den Offline-Betrieb im Browser).
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks(['Roboto'], await rootBundle.loadString('assets/fonts/Roboto_LICENSE.txt'));
+    // QR-Scanner im Browser (web/zxing).
+    if (kIsWeb) {
+      yield LicenseEntryWithLineBreaks(
+        ['ZXing (JavaScript)'],
+        await rootBundle.loadString('assets/licenses/zxing-js_LICENSE.txt'),
+      );
+    }
   });
   AppStorage? storage;
   try {

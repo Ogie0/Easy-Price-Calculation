@@ -90,9 +90,15 @@ class GridFit {
   /// Unterhalb dieser Kantenlänge wird gescrollt statt weiter verkleinert.
   static const double minTileExtent = 90;
 
+  /// Kachelgröße, wenn gescrollt werden muss: kompakt, damit trotzdem
+  /// möglichst viele zu sehen sind (z. B. im Browser auf dem iPhone, wo die
+  /// Leisten des Browsers Platz kosten).
+  static const double compactTileWidth = 110;
+  static const double compactTileHeight = 110;
+
   /// Wählt die Spaltenzahl, bei der die Kacheln am größten werden und
   /// trotzdem alle in [size] passen. Würden sie dabei zu klein, gibt es
-  /// stattdessen etwa quadratische Kacheln und das Raster scrollt.
+  /// stattdessen kompakte Kacheln und das Raster scrollt.
   factory GridFit.of(int count, Size size, {required double padding, required double spacing}) {
     final width = size.width - 2 * padding;
     // 1 px Reserve gegen Rundungsfehler, damit nichts minimal scrollt.
@@ -114,8 +120,9 @@ class GridFit {
     }
     if (bestExtent >= minTileExtent) return best;
 
-    final columns = math.max(2, ((width + spacing) / (1.5 * minTileExtent + spacing)).floor());
-    return GridFit(columns, 1);
+    final columns = math.max(2, ((width + spacing) / (compactTileWidth + spacing)).floor());
+    final tileWidth = (width - (columns - 1) * spacing) / columns;
+    return GridFit(columns, (tileWidth / compactTileHeight).clamp(0.6, 2.0));
   }
 }
 

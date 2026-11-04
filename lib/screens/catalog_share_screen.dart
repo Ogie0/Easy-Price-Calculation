@@ -93,9 +93,9 @@ class CatalogShareScreen extends StatelessWidget {
   }
 }
 
-enum _Source { liveCamera, photo, image }
+enum _Source { liveCamera, image }
 
-/// Fragt, woher das Sortiment kommt (Kamera, Foto, Screenshot), und liest es
+/// Fragt, woher das Sortiment kommt (Kamera oder Screenshot), und liest es
 /// ein. null bei Abbruch oder wenn kein Sortiment-Code gefunden wurde (dann
 /// mit Hinweis). In Tests austauschbar.
 @visibleForTesting
@@ -114,19 +114,12 @@ Future<CatalogTransfer?> _chooseCatalogSource(BuildContext context) async {
           ListTile(
             title: Text('Sortiment übernehmen', style: Theme.of(context).textTheme.titleMedium),
           ),
-          // Live-Scanner nur in der App; im Browser (iPhone) bräuchte er Internet.
-          if (!kIsWeb)
-            ListTile(
-              leading: const Icon(Icons.qr_code_scanner),
-              title: const Text('Mit der Kamera scannen'),
-              onTap: () => Navigator.pop(context, _Source.liveCamera),
-            )
-          else
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('QR-Code fotografieren'),
-              onTap: () => Navigator.pop(context, _Source.photo),
-            ),
+          ListTile(
+            leading: const Icon(Icons.qr_code_scanner),
+            title: const Text('Mit der Kamera scannen'),
+            subtitle: const Text('QR-Code auf dem anderen Gerät'),
+            onTap: () => Navigator.pop(context, _Source.liveCamera),
+          ),
           ListTile(
             key: const ValueKey('import-from-image'),
             leading: const Icon(Icons.screenshot_outlined),
@@ -147,9 +140,7 @@ Future<CatalogTransfer?> _chooseCatalogSource(BuildContext context) async {
 
   final XFile? file;
   try {
-    file = await ImagePicker().pickImage(
-      source: source == _Source.photo ? ImageSource.camera : ImageSource.gallery,
-    );
+    file = await ImagePicker().pickImage(source: ImageSource.gallery);
   } on Object catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('Bild konnte nicht geöffnet werden ($e).')));
     return null;
@@ -211,8 +202,9 @@ Future<void> importCatalog(BuildContext context) async {
   }
 }
 
-/// Kamera-Scanner (nur App) für den QR-Code eines anderen Geräts. Gibt das
-/// erkannte Sortiment zurück.
+/// Kamera-Scanner für den QR-Code eines anderen Geräts. Gibt das erkannte
+/// Sortiment zurück. Im Browser liest die mitgelieferte ZXing-Bibliothek
+/// (web/zxing) das Kamerabild, damit es auch ohne Internet geht.
 class CatalogScanScreen extends StatefulWidget {
   const CatalogScanScreen({super.key});
 
@@ -224,6 +216,16 @@ class _CatalogScanScreenState extends State<CatalogScanScreen> {
   final _controller = MobileScannerController(formats: const [BarcodeFormat.qrCode]);
   bool _done = false;
   bool _wrongCode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      MobileScannerPlatform.instance
+        ..setWebBarcodeReader(WebBarcodeReader.zxingJs)
+        ..setBarcodeLibraryScriptUrl('zxing/index.min.js');
+    }
+  }
 
   @override
   void dispose() {
@@ -260,9 +262,9 @@ class _CatalogScanScreenState extends State<CatalogScanScreen> {
                   padding: const EdgeInsets.all(24),
                   child: Text(
                     error.errorCode == MobileScannerErrorCode.permissionDenied
-                        ? 'Ohne Kamerazugriff kann der Code nicht gescannt werden. Bitte in den '
-                            'Android-Einstellungen der App die Kamera erlauben – oder den Code aus '
-                            'einem Screenshot laden.'
+                        ? 'Ohne Kamerazugriff kann der Code nicht gescannt werden. Bitte '
+                            '${kIsWeb ? 'dem Browser' : 'in den Android-Einstellungen der App'} die '
+                            'Kamera erlauben – oder den Code aus einem Screenshot laden.'
                         : 'Kamera nicht verfügbar. Der Code lässt sich auch aus einem Screenshot laden.',
                     textAlign: TextAlign.center,
                   ),
