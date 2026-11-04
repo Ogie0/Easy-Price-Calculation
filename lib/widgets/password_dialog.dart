@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Master-Passwort für die Einstellungen. Es schützt vor versehentlichen
+/// Master-Passwort für Preise und Sortiment. Es schützt vor versehentlichen
 /// Änderungen an der Kasse, ist aber keine echte Sicherung: Der Quellcode
 /// (und damit das Passwort) ist im Repository einsehbar.
 const String kMasterPassword = '1960';
@@ -43,7 +43,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Einstellungen'),
+      title: const Text('Preise & Sortiment'),
       content: TextField(
         key: const ValueKey('master-password'),
         controller: _controller,

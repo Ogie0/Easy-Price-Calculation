@@ -22,9 +22,24 @@ void setScreen(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
-/// Öffnet die Einstellungen mit dem Master-Passwort.
+/// Öffnet die Einstellungen (ohne Passwort).
 Future<void> openSettings(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Einstellungen'));
+  await tester.pumpAndSettle();
+}
+
+/// Von „Preise & Sortiment“ über die Einstellungen zurück zur Kasse.
+Future<void> backToRegister(WidgetTester tester) async {
+  for (var i = 0; i < 2; i++) {
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+  }
+}
+
+/// Öffnet „Preise & Sortiment“ mit dem Master-Passwort.
+Future<void> openCatalogSettings(WidgetTester tester) async {
+  await openSettings(tester);
+  await tester.tap(find.byKey(const ValueKey('open-catalog-settings')));
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const ValueKey('master-password')), '1960');
   await tester.tap(find.text('Öffnen'));
@@ -73,7 +88,7 @@ void main() {
     setScreen(tester, const Size(1280, 800));
     await tester.pumpWidget(buildApp());
 
-    await openSettings(tester);
+    await openCatalogSettings(tester);
 
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), '1,50');
@@ -86,8 +101,7 @@ void main() {
     expect(catalog.articleById('bratwurst').priceCents, 320);
 
     // Deutsche System-Texte: Der Zurück-Button heißt „Zurück“.
-    await tester.tap(find.byTooltip('Zurück'));
-    await tester.pumpAndSettle();
+    await backToRegister(tester);
     expect(find.text('3,20 €'), findsOneWidget);
   });
 
@@ -164,7 +178,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     expect(find.text('Krakauer'), findsOneWidget);
 
-    await openSettings(tester);
+    await openCatalogSettings(tester);
 
     // Krakauer ausblenden (erster „Anzeigen“-Chip nach Bratwurst/Currywurst).
     final krakauer = find.ancestor(of: find.text('Krakauer'), matching: find.byType(Column)).first;
@@ -181,18 +195,34 @@ void main() {
     await tester.tap(find.text('Hinzufügen'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Zurück'));
-    await tester.pumpAndSettle();
+    await backToRegister(tester);
     expect(find.text('Krakauer'), findsNothing);
     expect(find.text('Kuchen'), findsOneWidget);
     expect(find.text('1,50 €'), findsOneWidget);
   });
 
-  testWidgets('Einstellungen nur mit Master-Passwort', (tester) async {
+  testWidgets('Nur Preise & Sortiment brauchen das Master-Passwort', (tester) async {
     setScreen(tester, const Size(400, 800));
     await tester.pumpWidget(buildApp());
 
-    await tester.tap(find.byTooltip('Einstellungen'));
+    // Einstellungen selbst: ohne Passwort.
+    await openSettings(tester);
+    expect(find.byKey(const ValueKey('master-password')), findsNothing);
+    expect(find.byKey(const ValueKey('import-catalog')), findsOneWidget);
+    expect(find.byKey(const ValueKey('share-catalog')), findsOneWidget);
+    expect(find.text('Darstellung'), findsOneWidget);
+    final settingsList =
+        find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.text('Version').hitTestable(), 300, scrollable: settingsList);
+    expect(find.text('Pfandwert'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('open-catalog-settings')).hitTestable(),
+      -300,
+      scrollable: settingsList,
+    );
+
+    // Preise & Sortiment: falsches Passwort, abbrechen.
+    await tester.tap(find.byKey(const ValueKey('open-catalog-settings')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('master-password')), '1234');
     await tester.tap(find.text('Öffnen'));
@@ -204,8 +234,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pfandwert'), findsNothing);
 
-    await openSettings(tester);
+    // Richtiges Passwort.
+    await tester.tap(find.byKey(const ValueKey('open-catalog-settings')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('master-password')), '1960');
+    await tester.tap(find.text('Öffnen'));
+    await tester.pumpAndSettle();
     expect(find.text('Pfandwert'), findsOneWidget);
+
+    // Zurück und wieder hinein: kein zweites Mal fragen.
+    await tester.tap(find.byTooltip('Zurück'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('open-catalog-settings')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('master-password')), findsNothing);
+    expect(find.text('Pfandwert'), findsOneWidget);
+
+    // Einstellungen geschlossen: beim nächsten Mal wieder fragen.
+    await backToRegister(tester);
+    await openSettings(tester);
+    await tester.tap(find.byKey(const ValueKey('open-catalog-settings')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('master-password')), findsOneWidget);
   });
 
   testWidgets('FAQ ohne Passwort erreichbar', (tester) async {
@@ -285,7 +335,7 @@ void main() {
       listen: false,
     );
     catalog.addCustom(name: 'Kuchen', category: ArticleCategory.food, priceCents: 150);
-    await openSettings(tester);
+    await openCatalogSettings(tester);
 
     // Preisfeld leeren und verlassen: Der gespeicherte Preis erscheint wieder.
     final bratwurstField = find.descendant(
@@ -385,7 +435,7 @@ void main() {
       listen: false,
     );
     catalog.addCustom(name: 'Kuchen', category: ArticleCategory.food, priceCents: 150);
-    await openSettings(tester);
+    await openCatalogSettings(tester);
 
     final settingsList =
         find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
@@ -407,8 +457,7 @@ void main() {
     );
     expect(tester.widget<TextField>(waffelField).controller!.text, '2,50');
 
-    await tester.tap(find.byTooltip('Zurück'));
-    await tester.pumpAndSettle();
+    await backToRegister(tester);
     expect(find.text('Waffel'), findsOneWidget);
     expect(find.text('Kuchen'), findsNothing);
   });
@@ -420,7 +469,7 @@ void main() {
       tester.element(find.byType(Scaffold).first),
       listen: false,
     );
-    await openSettings(tester);
+    await openCatalogSettings(tester);
 
     // „Reihenfolge“ bei den Getränken (zweiter Abschnitt).
     final settingsList =
@@ -596,7 +645,7 @@ void main() {
       listen: false,
     );
 
-    await openSettings(tester);
+    await openCatalogSettings(tester);
     await tester.tap(find.byKey(const ValueKey('image-bratwurst')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Foto aus der Galerie'));
@@ -616,7 +665,7 @@ void main() {
   testWidgets('Fehler beim Foto wird gemeldet, Bild bleibt', (tester) async {
     setScreen(tester, const Size(400, 800));
     await tester.pumpWidget(KassenRoot(imageStore: _FailingImageStore()));
-    await openSettings(tester);
+    await openCatalogSettings(tester);
     await tester.tap(find.byKey(const ValueKey('image-bratwurst')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Foto aufnehmen'));

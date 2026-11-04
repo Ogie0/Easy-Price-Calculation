@@ -32,8 +32,7 @@ class CatalogProvider extends ChangeNotifier {
 
   /// Gerät noch nie eingerichtet (frisch installiert oder Daten gelöscht):
   /// Die Startseite bietet dann an, ein Sortiment per QR-Code oder
-  /// Screenshot zu übernehmen – ohne Master-Passwort, weil es ohnehin nur die
-  /// Standardpreise gibt.
+  /// Screenshot zu übernehmen.
   bool get showSetupHint => _setupHint;
 
   void dismissSetupHint() {

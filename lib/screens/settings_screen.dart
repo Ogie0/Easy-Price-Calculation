@@ -10,16 +10,98 @@ import '../utils/money.dart';
 import '../utils/version.dart';
 import '../services/article_image_store.dart';
 import '../widgets/article_art.dart';
+import '../widgets/password_dialog.dart';
 import '../widgets/price_field.dart';
 import 'catalog_share_screen.dart';
 import 'reorder_screen.dart';
 
-/// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
-/// pro Artikel, Reihenfolge der Kacheln, eigene Positionen anlegen,
-/// bearbeiten und löschen; dazu Darstellung (hell/dunkel) und Wischen. Änderungen
-/// gelten sofort und werden gespeichert.
-class SettingsScreen extends StatelessWidget {
+/// Einstellungen ohne Passwort: Darstellung, Sortiment teilen und
+/// übernehmen, Version. Preise und Sortiment bearbeiten liegt auf einer
+/// eigenen Seite hinter dem Master-Passwort.
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  /// Einmal eingegeben, gilt das Passwort, bis die Einstellungen
+  /// geschlossen werden.
+  bool _unlocked = false;
+
+  Future<void> _openCatalogSettings() async {
+    final navigator = Navigator.of(context);
+    if (!_unlocked) {
+      if (!await askMasterPassword(context)) return;
+      if (!mounted) return;
+      setState(() => _unlocked = true);
+    }
+    await navigator.push(
+      MaterialPageRoute<void>(builder: (_) => const CatalogSettingsScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Einstellungen')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              const _SectionHeader('Kasse einrichten'),
+              ListTile(
+                key: const ValueKey('open-catalog-settings'),
+                leading: const Icon(Icons.edit_note),
+                title: const Text('Preise & Sortiment'),
+                subtitle: const Text('Preise, Pfand, Artikel, Reihenfolge, Bilder'),
+                trailing: Icon(_unlocked ? Icons.lock_open : Icons.lock_outline),
+                onTap: _openCatalogSettings,
+              ),
+              const _SectionHeader('Mehrere Kassen'),
+              ListTile(
+                key: const ValueKey('share-catalog'),
+                leading: const Icon(Icons.qr_code_2),
+                title: const Text('Sortiment teilen'),
+                subtitle: const Text('QR-Code für ein anderes Gerät anzeigen'),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const CatalogShareScreen()),
+                ),
+              ),
+              ListTile(
+                key: const ValueKey('import-catalog'),
+                leading: const Icon(Icons.qr_code_scanner),
+                title: const Text('Sortiment übernehmen'),
+                subtitle: const Text('QR-Code scannen oder aus Screenshot laden'),
+                onTap: () => importCatalog(context),
+              ),
+              const _SectionHeader('Darstellung'),
+              const _ThemeModeSetting(),
+              const _ShowImagesSetting(),
+              const _SwipeTabsSetting(),
+              const Divider(height: 32),
+              const ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text('Version'),
+                subtitle: Text(kAppVersion),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preise, Pfandwert und Sortiment: Artikel ein- und ausblenden, Pfand
+/// pro Artikel, Reihenfolge der Kacheln, eigene Fotos, eigene Positionen
+/// anlegen, bearbeiten und löschen. Nur mit Master-Passwort erreichbar.
+/// Änderungen gelten sofort und werden gespeichert.
+class CatalogSettingsScreen extends StatelessWidget {
+  const CatalogSettingsScreen({super.key});
 
   Future<void> _addCustom(BuildContext context) async {
     final catalog = context.read<CatalogProvider>();
@@ -48,7 +130,7 @@ class SettingsScreen extends StatelessWidget {
     final catalog = context.watch<CatalogProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Einstellungen')),
+      appBar: AppBar(title: const Text('Preise & Sortiment')),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Position hinzufügen'),
@@ -86,33 +168,6 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   for (final a in catalog.allOf(category)) _ArticleSettings(article: a),
                 ],
-                const _SectionHeader('Mehrere Kassen'),
-                ListTile(
-                  key: const ValueKey('share-catalog'),
-                  leading: const Icon(Icons.qr_code_2),
-                  title: const Text('Sortiment teilen'),
-                  subtitle: const Text('QR-Code für ein anderes Gerät anzeigen'),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const CatalogShareScreen()),
-                  ),
-                ),
-                ListTile(
-                  key: const ValueKey('import-catalog'),
-                  leading: const Icon(Icons.qr_code_scanner),
-                  title: const Text('Sortiment übernehmen'),
-                  subtitle: const Text('QR-Code scannen oder aus Screenshot laden'),
-                  onTap: () => importCatalog(context),
-                ),
-                const _SectionHeader('Darstellung'),
-                const _ThemeModeSetting(),
-                const _ShowImagesSetting(),
-                const _SwipeTabsSetting(),
-                const Divider(height: 32),
-                const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Version'),
-                  subtitle: Text(kAppVersion),
-                ),
               ],
             ),
           ),

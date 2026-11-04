@@ -45,8 +45,10 @@ Die Flutter-Version ist im Workflow festgelegt
 
 ## Einstellungen
 
-Preise, Pfandwert und Sortiment sind durch ein Master-Passwort geschützt
-(`lib/widgets/password_dialog.dart`). Es verhindert versehentliche Änderungen
+Nur „Preise & Sortiment“ (Preise, Pfandwert, Artikel, Reihenfolge, Fotos)
+ist durch ein Master-Passwort geschützt (`lib/widgets/password_dialog.dart`).
+Darstellung, „Sortiment teilen“, „Sortiment übernehmen“ und die Version sind
+ohne Passwort erreichbar. Es verhindert versehentliche Änderungen
 an der Kasse, ist aber keine echte Sicherung, da der Quellcode einsehbar ist.
 
 ## Signatur

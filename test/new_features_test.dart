@@ -21,11 +21,9 @@ void setScreen(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
+/// Öffnet die Einstellungen: Teilen und Übernehmen gehen ohne Passwort.
 Future<void> openSettings(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Einstellungen'));
-  await tester.pumpAndSettle();
-  await tester.enterText(find.byKey(const ValueKey('master-password')), '1960');
-  await tester.tap(find.text('Öffnen'));
   await tester.pumpAndSettle();
 }
 

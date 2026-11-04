@@ -39,7 +39,7 @@ class FaqScreen extends StatelessWidget {
       'Bei Getränken mit Pfand (z. B. Wasser, Softdrink, Longdrink, Bier/Radler) kommt das Pfand '
           'automatisch als eigene Position dazu. Bringt jemand einen Becher zurück, im Tab '
           '„Getränke“ auf „Pfandrückgabe“ tippen – das bucht den Pfandbetrag als Minusbetrag. '
-          'Steht der Pfandwert in den Einstellungen auf 0,00 €, ist Pfand ganz ausgeschaltet.',
+          'Steht der Pfandwert unter „Preise & Sortiment“ auf 0,00 €, ist Pfand ganz ausgeschaltet.',
     ),
     (
       'Wie berechne ich das Rückgeld?',
@@ -57,12 +57,13 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Wie ändere ich Preise oder lege neue Positionen an?',
-      'Über das Zahnrad oben rechts. Die Einstellungen sind mit dem Master-Passwort geschützt '
-          '(beim Vorstand erfragen). Dort lassen sich Preise und Pfandwert ändern, Artikel ein- '
-          'und ausblenden, Pfand pro Artikel festlegen, die Reihenfolge der Kacheln ändern '
-          '(„Reihenfolge“), eigene Fotos für die Kacheln wählen („Bild“) und eigene Positionen '
-          'anlegen, bearbeiten und löschen. Unter „Darstellung“ gibt es Hell/Dunkel, Bilder oder '
-          'Emojis und die Sperre fürs Wischen zwischen Speisen und Getränken.',
+      'Über das Zahnrad oben rechts und dann „Preise & Sortiment“. Nur dieser Bereich ist mit dem '
+          'Master-Passwort geschützt (beim Vorstand erfragen). Dort lassen sich Preise und Pfandwert '
+          'ändern, Artikel ein- und ausblenden, Pfand pro Artikel festlegen, die Reihenfolge der '
+          'Kacheln ändern („Reihenfolge“), eigene Fotos für die Kacheln wählen („Bild“) und eigene '
+          'Positionen anlegen, bearbeiten und löschen. Ohne Passwort erreichbar sind „Darstellung“ '
+          '(Hell/Dunkel, Bilder oder Emojis, Sperre fürs Wischen zwischen Speisen und Getränken), '
+          '„Sortiment teilen“, „Sortiment übernehmen“ und die Version.',
     ),
     (
       'Wie richte ich mehrere Kassen gleich ein?',
@@ -77,9 +78,8 @@ class FaqScreen extends StatelessWidget {
       'Am besten einmal unter „Sortiment teilen“ einen Screenshot vom QR-Code machen. Ist ein '
           'Gerät später leer (z. B. App neu installiert oder Daten gelöscht), erscheint auf der '
           'Startseite „Neues Gerät?“ – dort auf „Übernehmen“ tippen, „Aus Screenshot oder Bild '
-          'laden“ wählen und den Screenshot aussuchen. Das geht auch ohne Master-Passwort, solange '
-          'das Gerät noch nicht eingerichtet ist. Sonst in den Einstellungen über „Sortiment '
-          'übernehmen“.',
+          'laden“ wählen und den Screenshot aussuchen. Jederzeit geht es auch in den Einstellungen '
+          'über „Sortiment übernehmen“, ohne Passwort.',
     ),
     (
       'Werden Umsätze gespeichert?',
@@ -102,10 +102,10 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Kann ich eigene Fotos für die Kacheln nehmen?',
-      'Ja. In den Einstellungen beim Artikel auf „Bild“ tippen und ein Foto aus der Galerie '
-          'wählen oder direkt aufnehmen. Über „Standardbild verwenden“ kommt das gezeichnete Bild '
-          'zurück. Die Fotos bleiben nur auf diesem Gerät. Unter „Darstellung“ lässt sich mit '
-          '„Bilder statt Emojis“ auch wieder auf Emojis umstellen.',
+      'Ja. In den Einstellungen unter „Preise & Sortiment“ beim Artikel auf „Bild“ tippen und '
+          'ein Foto aus der Galerie wählen oder direkt aufnehmen. Über „Standardbild verwenden“ '
+          'kommt das gezeichnete Bild zurück. Die Fotos bleiben nur auf diesem Gerät. Unter '
+          '„Darstellung“ lässt sich mit „Bilder statt Emojis“ auch wieder auf Emojis umstellen.',
     ),
     (
       'Gibt es einen Dunkelmodus?',
