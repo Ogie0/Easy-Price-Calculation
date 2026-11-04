@@ -1,16 +1,24 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'app_storage.dart';
 
 /// Eigene Fotos für Kacheln: aus Galerie oder Kamera, verkleinert und als
-/// Kopie im App-Ordner abgelegt (bleibt auch, wenn das Original gelöscht
-/// wird). Die Fotos verlassen das Gerät nicht.
+/// Kopie gespeichert (bleibt auch, wenn das Original gelöscht wird) – in der
+/// App als Datei im App-Ordner, im Browser (iPhone) im Speicher des Browsers.
+/// Die Fotos verlassen das Gerät nicht.
 class ArticleImageStore {
+  /// Kennzeichnet Fotos im Browser-Speicher (statt eines Dateipfads).
+  static const _webPrefix = 'web:';
+
   final ImagePicker _picker;
   final AppStorage? _storage;
+  final Map<String, Uint8List> _webPhotos = {};
 
   ArticleImageStore({ImagePicker? picker, AppStorage? storage})
       : _picker = picker ?? ImagePicker(),
@@ -28,7 +36,8 @@ class ArticleImageStore {
         maxHeight: 600,
         imageQuality: 85,
       );
-      return picked == null ? null : await _saveCopy(picked, articleId);
+      if (picked == null) return null;
+      return kIsWeb ? await _saveInBrowser(picked, articleId) : await _saveCopy(picked, articleId);
     } finally {
       await _storage?.savePendingImage(null);
     }
@@ -37,6 +46,7 @@ class ArticleImageStore {
   /// Nach einem Neustart: Foto, das vor dem Beenden der App noch aufgenommen
   /// wurde, samt Artikel-ID. Nur Android kennt diesen Fall.
   Future<({String articleId, String path})?> recoverLost() async {
+    if (kIsWeb) return null;
     final articleId = _storage?.loadPendingImage();
     if (articleId == null || !Platform.isAndroid) return null;
     try {
@@ -47,6 +57,38 @@ class ArticleImageStore {
     } finally {
       await _storage?.savePendingImage(null);
     }
+  }
+
+  /// Bild zu einem gespeicherten Foto, oder null, wenn es fehlt.
+  ImageProvider? imageFor(String path) {
+    if (path.startsWith(_webPrefix)) {
+      final key = path.substring(_webPrefix.length);
+      final bytes = _webPhotos[key] ?? _loadFromBrowser(key);
+      if (bytes == null) return null;
+      _webPhotos[key] = bytes;
+      return MemoryImage(bytes);
+    }
+    return kIsWeb ? null : FileImage(File(path));
+  }
+
+  Uint8List? _loadFromBrowser(String key) {
+    final data = _storage?.loadPhoto(key);
+    if (data == null) return null;
+    try {
+      return base64Decode(data);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<String> _saveInBrowser(XFile picked, String articleId) async {
+    final storage = _storage;
+    if (storage == null) throw StateError('Kein Speicher verfügbar');
+    final bytes = await picked.readAsBytes();
+    final key = '${articleId}_${DateTime.now().millisecondsSinceEpoch}';
+    await storage.savePhoto(key, base64Encode(bytes));
+    _webPhotos[key] = bytes;
+    return '$_webPrefix$key';
   }
 
   Future<String> _saveCopy(XFile picked, String articleId) async {
@@ -63,6 +105,13 @@ class ArticleImageStore {
   /// Löscht ein nicht mehr benötigtes Foto. Fehler sind egal.
   Future<void> delete(String? path) async {
     if (path == null) return;
+    if (path.startsWith(_webPrefix)) {
+      final key = path.substring(_webPrefix.length);
+      _webPhotos.remove(key);
+      await _storage?.deletePhoto(key);
+      return;
+    }
+    if (kIsWeb) return;
     try {
       await File(path).delete();
     } on FileSystemException {

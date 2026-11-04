@@ -14,6 +14,7 @@ class AppStorage {
   static const _swipeTabsKey = 'swipe_tabs';
   static const _showImagesKey = 'show_images';
   static const _pendingImageKey = 'pending_image_article';
+  static const _setupHintKey = 'setup_hint_dismissed';
 
   /// Ältere Versionen haben nur die Preise einzeln gespeichert.
   static const _legacyPricePrefix = 'price_cents_';
@@ -70,6 +71,25 @@ class AppStorage {
   bool? loadShowImages() => _prefs.getBool(_showImagesKey);
 
   Future<void> saveShowImages(bool value) => _prefs.setBool(_showImagesKey, value);
+
+  /// Ob der Hinweis „Sortiment übernehmen“ auf einem neuen Gerät weggeklickt
+  /// wurde.
+  bool loadSetupHintDismissed() => _prefs.getBool(_setupHintKey) ?? false;
+
+  Future<void> saveSetupHintDismissed() => _prefs.setBool(_setupHintKey, true);
+
+  /// Eigene Fotos im Browser (iPhone), Base64-kodiert, je Foto ein Eintrag.
+  static const _photoPrefix = 'photo_';
+
+  String? loadPhoto(String key) => _prefs.getString('$_photoPrefix$key');
+
+  Future<void> savePhoto(String key, String base64) async {
+    if (!await _prefs.setString('$_photoPrefix$key', base64)) {
+      throw StateError('Foto konnte nicht gespeichert werden');
+    }
+  }
+
+  Future<void> deletePhoto(String key) => _prefs.remove('$_photoPrefix$key');
 
   /// Artikel, für den gerade ein Foto ausgewählt wird (sonst null).
   String? loadPendingImage() => _prefs.getString(_pendingImageKey);

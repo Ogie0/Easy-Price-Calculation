@@ -15,6 +15,7 @@ import '../widgets/checkout_panel.dart';
 import '../widgets/club_logo.dart';
 import '../widgets/password_dialog.dart';
 import '../widgets/quantity_bar.dart';
+import 'catalog_share_screen.dart';
 import 'faq_screen.dart';
 import 'settings_screen.dart';
 
@@ -99,6 +100,7 @@ class HomeScreen extends StatelessWidget {
                             color: Theme.of(context).appBarTheme.backgroundColor,
                             child: _tabBar,
                           ),
+                          if (catalog.showSetupHint) const _SetupHint(),
                           const QuantityBar(),
                           Expanded(child: tabView),
                         ],
@@ -112,6 +114,7 @@ class HomeScreen extends StatelessWidget {
                 )
               : Column(
                   children: [
+                    if (catalog.showSetupHint) const _SetupHint(),
                     const QuantityBar(),
                     Expanded(child: tabView),
                   ],
@@ -162,6 +165,46 @@ class _CloseGuard extends StatelessWidget {
         if (!didPop) unawaited(_confirmClose(context));
       },
       child: child,
+    );
+  }
+}
+
+/// Hinweis auf einem neuen bzw. zurückgesetzten Gerät: Sortiment per
+/// QR-Code oder aus einem Screenshot übernehmen.
+class _SetupHint extends StatelessWidget {
+  const _SetupHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      key: const ValueKey('setup-hint'),
+      color: scheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+        child: Row(
+          children: [
+            Icon(Icons.qr_code_2, color: scheme.onSecondaryContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Neues Gerät? Preise und Sortiment per QR-Code oder Screenshot übernehmen.',
+                style: TextStyle(color: scheme.onSecondaryContainer),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('setup-import'),
+              onPressed: () => importCatalog(context),
+              child: const Text('Übernehmen'),
+            ),
+            IconButton(
+              tooltip: 'Hinweis ausblenden',
+              icon: const Icon(Icons.close),
+              onPressed: context.read<CatalogProvider>().dismissSetupHint,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

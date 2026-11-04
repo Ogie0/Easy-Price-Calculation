@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/article.dart';
 import '../providers/appearance_provider.dart';
+import '../services/article_image_store.dart';
 
 /// Emoji als Rückfall, wenn kein Bild da ist oder Bilder ausgeschaltet sind.
 const Map<String, String> _articleEmoji = {
@@ -100,14 +99,15 @@ class ArticleArtView extends StatelessWidget {
     Widget child;
     if (!images) {
       child = emoji;
-    } else if (art.file case final file?) {
+    } else if (art.file case final file?
+        when context.read<ArticleImageStore>().imageFor(file) != null) {
       child = Center(
         child: AspectRatio(
           aspectRatio: 1,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(size == null ? 14 : 6),
-            child: Image.file(
-              File(file),
+            child: Image(
+              image: context.read<ArticleImageStore>().imageFor(file)!,
               fit: BoxFit.cover,
               gaplessPlayback: true,
               excludeFromSemantics: true,

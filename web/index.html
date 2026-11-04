@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- Wird beim Bauen durch --base-href ersetzt (GitHub Pages: /Easy-Price-Calculation/). -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="description" content="Offline-Kasse des Junggesellenclubs Ellierode v. 1960">
+  <meta name="theme-color" content="#026F40">
+
+  <!-- Als App auf dem Home-Bildschirm (iPhone/iPad und Android) -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Knülle Kasse">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <title>Knülle Kalkulieren - JGC</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #ffffff; }
+    #splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #splash img { width: 160px; height: auto; }
+    @media (prefers-color-scheme: dark) { html, body { background: #0f1511; } }
+  </style>
+</head>
+<body>
+  <!-- Vereinslogo, bis die App geladen ist -->
+  <div id="splash"><img src="icons/splash-logo.png" alt="Junggesellenclub Ellierode v. 1960"></div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

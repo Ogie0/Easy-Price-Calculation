@@ -1,11 +1,11 @@
-name: Android-APK bauen
+name: Android-APK und iPhone-Web-App bauen
 
 on:
   push:
     branches: [main, master, 'claude/**']
   workflow_dispatch:
 
-# Standard: nur lesen. Schreibrechte bekommt allein der Release-Job.
+# Standard: nur lesen. Schreibrechte bekommen allein die Veröffentlichungs-Jobs.
 permissions:
   contents: read
 
@@ -101,6 +101,66 @@ jobs:
         with:
           name: Knuelle-Kalkulieren-JGC-apk
           path: Knuelle-Kalkulieren-JGC.apk
+
+  # Web-App fürs iPhone (und jeden anderen Browser): läuft nach dem ersten
+  # Öffnen offline. Baut parallel zur APK; getestet wird im Job "build".
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - run: flutter pub get --enforce-lockfile
+
+      # Alles wird mitgeliefert (--no-web-resources-cdn), damit die App ohne
+      # Internet startet. Die Adresse ist https://<besitzer>.github.io/<repo>/.
+      - name: Web-App bauen
+        run: |
+          NAME="$(sed -nE 's/^version: *([^+ ]+).*/\1/p' pubspec.yaml)"
+          flutter build web --release --no-web-resources-cdn \
+            --base-href "/${{ github.event.repository.name }}/" \
+            --dart-define=APP_VERSION="$NAME (Build $GITHUB_RUN_NUMBER, Web)"
+          python3 tool/web/finalize_web.py build/web "$GITHUB_RUN_NUMBER"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Knuelle-Kalkulieren-JGC-web
+          path: build/web
+          include-hidden-files: true
+
+  # Veröffentlicht die Web-App im Zweig "gh-pages" (GitHub Pages: "Deploy
+  # from a branch", gh-pages, / (root)). Nur wenn die Tests im Job "build"
+  # durchgelaufen sind. Der Zweig enthält immer nur den neuesten Stand.
+  pages:
+    needs: [build, web]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: Knuelle-Kalkulieren-JGC-web
+          path: site
+
+      - name: Zweig "gh-pages" aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          cd site
+          touch .nojekyll
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Web-App $VERSION aus ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}"
+          git push --force -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "Veröffentlicht: https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # Stellt die neueste APK unter "Releases" bereit, damit sie direkt auf dem
   # Smartphone heruntergeladen werden kann.

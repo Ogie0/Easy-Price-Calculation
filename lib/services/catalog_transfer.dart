@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:archive/archive.dart';
 
 import '../models/article.dart';
 
@@ -35,7 +36,8 @@ class CatalogTransfer {
           ],
       ],
     };
-    final packed = GZipCodec(level: 9).encode(utf8.encode(jsonEncode(data)));
+    // gzip in reinem Dart, damit es auch im Browser (iPhone) funktioniert.
+    final packed = const GZipEncoder().encodeBytes(utf8.encode(jsonEncode(data)), level: 9);
     return '$_prefix${base64Url.encode(packed)}';
   }
 
@@ -43,7 +45,9 @@ class CatalogTransfer {
   static CatalogTransfer? decode(String text) {
     if (!text.startsWith(_prefix)) return null;
     try {
-      final json = utf8.decode(GZipCodec().decode(base64Url.decode(text.substring(_prefix.length))));
+      final json = utf8.decode(
+        const GZipDecoder().decodeBytes(base64Url.decode(text.substring(_prefix.length))),
+      );
       final data = jsonDecode(json) as Map<String, Object?>;
       final deposit = data['d']! as int;
       final articles = [

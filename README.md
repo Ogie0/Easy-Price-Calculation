@@ -1,6 +1,6 @@
 # Knülle Kalkulieren - JGC
 
-Offline-Kassen-App („Knülle Kasse“ auf dem Startbildschirm) des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android). Speisen und Getränke
+Offline-Kassen-App („Knülle Kasse“ auf dem Startbildschirm) des Junggesellenclubs Ellierode v. 1960 für Vereinsfeste (Flutter, Android und als Web-App fürs iPhone). Speisen und Getränke
 per Kachel buchen, automatische Pfandposten, Pfandrückgabe, Rückgeldrechner
 mit Ziffernblock. Preise und Pfandwert lassen sich in den Einstellungen
 ändern und bleiben auf dem Gerät gespeichert. Es werden keine Umsätze
@@ -11,6 +11,25 @@ protokolliert, die App braucht kein Internet.
 Jeder Push baut über GitHub Actions eine neue APK. Die neueste liegt unter
 **Releases → „Knülle Kalkulieren - JGC …“** (`Knuelle-Kalkulieren-JGC.apk`) und kann direkt
 auf dem Smartphone heruntergeladen und installiert werden.
+
+## iPhone (Web-App)
+
+Derselbe Lauf baut auch eine Web-App und legt sie in den Zweig `gh-pages`.
+Einmalig in GitHub unter **Settings → Pages** „Deploy from a branch“ mit
+`gh-pages` / `(root)` wählen. Danach ist die Kasse unter
+<https://ogie0.github.io/Easy-Price-Calculation/> erreichbar: in Safari öffnen,
+„Teilen“ → „Zum Home-Bildschirm“. Nach dem ersten Öffnen läuft sie ohne
+Internet (eigener Service Worker `web/sw.js`, Schriften und CanvasKit werden
+mitgeliefert). Lokal bauen:
+
+```sh
+flutter build web --release --no-web-resources-cdn --base-href /Easy-Price-Calculation/
+python3 tool/web/finalize_web.py build/web lokal
+```
+
+Sortiment und Preise lassen sich zwischen den Geräten per QR-Code
+übertragen, auch aus einem gespeicherten Screenshot des QR-Codes
+(Einstellungen → „Sortiment teilen“ / „Sortiment übernehmen“).
 
 ## Entwicklung
 
@@ -43,6 +62,7 @@ Wegwerf-Schlüssel signiert. Lokal: `android/key.properties` anlegen (siehe
 
 - `lib/models` – Artikel, Warenkorbpositionen, Standardsortiment
 - `lib/providers` – Zustand (Katalog, Warenkorb, Bargeldeingabe)
-- `lib/services` – lokales Speichern der Preise
+- `lib/services` – lokales Speichern, QR-Übertragung, eigene Fotos
 - `lib/screens`, `lib/widgets` – Oberfläche (Smartphone hoch, Tablet quer)
 - `assets/icon` – App-Icon; nach Änderungen `dart run flutter_launcher_icons`
+- `web`, `tool/web` – Web-App (iPhone): Startseite, Manifest, Offline-Speicher

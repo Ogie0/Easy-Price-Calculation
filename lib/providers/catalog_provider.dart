@@ -15,6 +15,7 @@ class CatalogProvider extends ChangeNotifier {
   final AppStorage? _storage;
   int _depositCents;
   int _nextCustomId = 0;
+  bool _setupHint;
 
   CatalogProvider({
     List<Article> articles = kDefaultArticles,
@@ -23,7 +24,24 @@ class CatalogProvider extends ChangeNotifier {
   })  : _storage = storage,
         _defaults = articles,
         _articles = _load(articles, storage),
-        _depositCents = storage?.loadDeposit() ?? depositCents;
+        _depositCents = storage?.loadDeposit() ?? depositCents,
+        _setupHint = storage != null &&
+            storage.loadArticles() == null &&
+            storage.loadDeposit() == null &&
+            !storage.loadSetupHintDismissed();
+
+  /// Gerät noch nie eingerichtet (frisch installiert oder Daten gelöscht):
+  /// Die Startseite bietet dann an, ein Sortiment per QR-Code oder
+  /// Screenshot zu übernehmen – ohne Master-Passwort, weil es ohnehin nur die
+  /// Standardpreise gibt.
+  bool get showSetupHint => _setupHint;
+
+  void dismissSetupHint() {
+    if (!_setupHint) return;
+    _setupHint = false;
+    _save(_storage?.saveSetupHintDismissed());
+    notifyListeners();
+  }
 
   /// Gespeichertes Sortiment in gespeicherter Reihenfolge; Standardartikel
   /// behalten Namen und Emoji aus dem Code, neue Standardartikel (z. B. nach
@@ -241,6 +259,7 @@ class CatalogProvider extends ChangeNotifier {
     }
     if (_depositCents == depositCents) return;
     _depositCents = depositCents;
+    _setupHint = false;
     _save(_storage?.saveDeposit(depositCents));
     notifyListeners();
   }
@@ -262,7 +281,10 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _persist() => _save(_storage?.saveArticles(_articles));
+  void _persist() {
+    _setupHint = false;
+    _save(_storage?.saveArticles(_articles));
+  }
 
   /// Speichert im Hintergrund; ein Fehler beim Schreiben soll die Kasse
   /// nicht stören, der Wert gilt dann nur bis zum nächsten Neustart.

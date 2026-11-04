@@ -28,7 +28,7 @@ class FaqScreen extends StatelessWidget {
     ),
     (
       'Wie storniere ich eine einzelne Position?',
-      'Im Warenkorb auf ⊖ neben der Position tippen – bei „6 × Bier/Radler“ wird jeweils eins '
+      'Im Warenkorb auf das Minus-Symbol neben der Position tippen – bei „6 × Bier/Radler“ wird jeweils eins '
           'storniert. Bei Getränken mit Pfand wird das Pfand automatisch mit entfernt. Den ganzen '
           'Warenkorb leert „Alle löschen“ (Handy, unten) bzw. der Mülleimer oben – nach einer '
           'Sicherheitsabfrage. Auch das lässt sich über „Rückgängig“ in der Meldung unten '
@@ -68,9 +68,18 @@ class FaqScreen extends StatelessWidget {
       'Wie richte ich mehrere Kassen gleich ein?',
       'Auf einem Gerät alles einrichten, dann dort in den Einstellungen „Sortiment teilen“ '
           'öffnen. Auf dem anderen Gerät in den Einstellungen „Sortiment übernehmen“ wählen und '
-          'die Kamera auf den QR-Code richten. '
+          'den QR-Code scannen oder fotografieren. '
           'Preise, Pfand, Reihenfolge und eigene Positionen werden übernommen, ganz ohne Internet. '
           'Eigene Fotos bleiben auf dem jeweiligen Gerät.',
+    ),
+    (
+      'Daten weg – wie bekomme ich das Sortiment zurück?',
+      'Am besten einmal unter „Sortiment teilen“ einen Screenshot vom QR-Code machen. Ist ein '
+          'Gerät später leer (z. B. App neu installiert oder Daten gelöscht), erscheint auf der '
+          'Startseite „Neues Gerät?“ – dort auf „Übernehmen“ tippen, „Aus Screenshot oder Bild '
+          'laden“ wählen und den Screenshot aussuchen. Das geht auch ohne Master-Passwort, solange '
+          'das Gerät noch nicht eingerichtet ist. Sonst in den Einstellungen über „Sortiment '
+          'übernehmen“.',
     ),
     (
       'Werden Umsätze gespeichert?',
@@ -114,7 +123,18 @@ class FaqScreen extends StatelessWidget {
       'Die neue APK „Knuelle-Kalkulieren-JGC.apk“ aus dem GitHub-Release herunterladen und '
           'über die bestehende App installieren. Preise und eigene Positionen bleiben erhalten. '
           'Die installierte Version steht ganz unten in den Einstellungen. Die App läuft auf '
-          'aktuellen Android-Geräten (64 Bit, Android 7 oder neuer).',
+          'aktuellen Android-Geräten (64 Bit, Android 7 oder neuer). Die iPhone-Version '
+          'aktualisiert sich von selbst, sobald sie einmal mit Internet geöffnet wird; die neue '
+          'Version gilt ab dem nächsten Start.',
+    ),
+    (
+      'Gibt es die Kasse auch fürs iPhone?',
+      'Ja, als Web-App: In Safari https://ogie0.github.io/Easy-Price-Calculation/ öffnen, '
+          'unten auf „Teilen“ tippen und „Zum Home-Bildschirm“ wählen. Danach startet die Kasse '
+          'über das Symbol im Vollbild und funktioniert nach dem ersten Öffnen auch ohne Internet. '
+          'Unterschiede zur Android-App: keine Vibration beim Tippen; der Bildschirm bleibt nur '
+          'auf aktuellen iOS-Versionen an. Wird das Symbol gelöscht, sind die Daten auf dem '
+          'iPhone weg – dann einfach per QR-Code oder Screenshot neu übernehmen.',
     ),
   ];
 

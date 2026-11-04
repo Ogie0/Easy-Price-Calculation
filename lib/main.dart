@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -11,12 +13,18 @@ import 'screens/home_screen.dart';
 import 'services/app_storage.dart';
 import 'services/article_image_store.dart';
 import 'theme.dart';
+import 'utils/keep_awake.dart';
 import 'widgets/article_art.dart';
 import 'widgets/lost_photo_recovery.dart';
 import 'widgets/orientation_lock.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) keepScreenOnInBrowser();
+  // Die Schrift Roboto ist mitgeliefert (für den Offline-Betrieb im Browser).
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['Roboto'], await rootBundle.loadString('assets/fonts/Roboto_LICENSE.txt'));
+  });
   AppStorage? storage;
   try {
     storage = await AppStorage.open();

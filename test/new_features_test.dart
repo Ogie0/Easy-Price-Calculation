@@ -3,7 +3,7 @@ import 'package:easy_price_calculation/main.dart';
 import 'package:easy_price_calculation/models/article.dart';
 import 'package:easy_price_calculation/providers/catalog_provider.dart';
 import 'package:easy_price_calculation/screens/checkout_screen.dart';
-import 'package:easy_price_calculation/screens/settings_screen.dart';
+import 'package:easy_price_calculation/screens/catalog_share_screen.dart';
 import 'package:easy_price_calculation/services/app_storage.dart';
 import 'package:easy_price_calculation/services/article_image_store.dart';
 import 'package:easy_price_calculation/services/catalog_transfer.dart';
@@ -122,9 +122,9 @@ void main() {
       setScreen(tester, const Size(400, 800));
       final source = CatalogProvider()..setPrice('steak', 650);
       final transfer = CatalogTransfer(articles: source.all, depositCents: 300);
-      final original = SettingsScreen.scan;
-      SettingsScreen.scan = (_) async => transfer;
-      addTearDown(() => SettingsScreen.scan = original);
+      final original = chooseCatalogSource;
+      chooseCatalogSource = (_) async => transfer;
+      addTearDown(() => chooseCatalogSource = original);
 
       await tester.pumpWidget(const KassenRoot());
       final catalog = Provider.of<CatalogProvider>(
@@ -148,6 +148,47 @@ void main() {
       expect(catalog.articleById('steak').priceCents, 650);
       expect(catalog.depositCents, 300);
       expect(find.textContaining('Sortiment übernommen'), findsOneWidget);
+    });
+  });
+
+  group('Neues oder zurückgesetztes Gerät', () {
+    testWidgets('Hinweis bietet Übernehmen ohne Passwort an', (tester) async {
+      setScreen(tester, const Size(400, 800));
+      SharedPreferences.setMockInitialValues({});
+      final storage = await AppStorage.open();
+      final source = CatalogProvider()..setPrice('pommes', 350);
+      final original = chooseCatalogSource;
+      chooseCatalogSource = (_) async => CatalogTransfer(articles: source.all, depositCents: 100);
+      addTearDown(() => chooseCatalogSource = original);
+
+      await tester.pumpWidget(KassenRoot(storage: storage));
+      expect(find.byKey(const ValueKey('setup-hint')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('setup-import')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-import')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('setup-hint')), findsNothing);
+      expect(
+        find.descendant(of: find.widgetWithText(ArticleTile, 'Pommes'), matching: find.text('3,50 €')),
+        findsOneWidget,
+      );
+
+      // Nach einem Neustart ist das Gerät eingerichtet: kein Hinweis mehr.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(KassenRoot(storage: await AppStorage.open()));
+      expect(find.byKey(const ValueKey('setup-hint')), findsNothing);
+    });
+
+    testWidgets('Hinweis lässt sich dauerhaft ausblenden', (tester) async {
+      setScreen(tester, const Size(400, 800));
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(KassenRoot(storage: await AppStorage.open()));
+      await tester.tap(find.byTooltip('Hinweis ausblenden'));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('setup-hint')), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(KassenRoot(storage: await AppStorage.open()));
+      expect(find.byKey(const ValueKey('setup-hint')), findsNothing);
     });
   });
 
