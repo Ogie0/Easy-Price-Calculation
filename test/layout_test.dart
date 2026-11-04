@@ -150,6 +150,7 @@ void main() {
     // Smartphone hoch: 2 Spalten x 3 Reihen.
     final phone = GridFit.of(6, const Size(360, 470), padding: 12, spacing: 12);
     expect(phone.columns, 2);
+    expect(phone.scrolls, isFalse);
     // Kaum Platz: lieber scrollen als winzige Kacheln, aber kompakte statt
     // großer quadratischer Kacheln.
     final tiny = GridFit.of(6, const Size(360, 200), padding: 12, spacing: 12);
@@ -159,10 +160,42 @@ void main() {
     // (6 von 7 Kacheln) ohne Scrollen sichtbar.
     final iphoneBrowser = GridFit.of(7, const Size(402, 256), padding: 12, spacing: 12);
     expect(iphoneBrowser.columns, 3);
+    expect(iphoneBrowser.scrolls, isTrue);
     final tileHeight = 118 / iphoneBrowser.aspectRatio;
     expect(2 * tileHeight + 12, lessThanOrEqualTo(256 - 24));
     // Unbegrenzte Höhe (z. B. in einer Scroll-Ansicht) bricht nicht.
     expect(GridFit.of(6, const Size(360, double.infinity), padding: 12, spacing: 12).columns, 2);
+  });
+
+  testWidgets(
+    'iPhone: Passen alle Kacheln, federt das Raster beim Wischen nicht',
+    (tester) async {
+      setScreen(tester, const Size(400, 800));
+      await tester.pumpWidget(buildApp());
+      final tile = find.text('Bratwurst');
+      final before = tester.getTopLeft(tile);
+
+      final gesture = await tester.startGesture(tester.getCenter(find.text('Pommes')));
+      await gesture.moveBy(const Offset(0, -150));
+      await tester.pump();
+      expect(tester.getTopLeft(tile), before);
+      await gesture.moveBy(const Offset(0, 300));
+      await tester.pump();
+      expect(tester.getTopLeft(tile), before);
+      await gesture.up();
+      await tester.pumpAndSettle();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets('Wenig Platz: Raster scrollt', (tester) async {
+    setScreen(tester, const Size(400, 520));
+    await tester.pumpWidget(buildApp());
+    final tile = find.text('Bratwurst');
+    final before = tester.getTopLeft(tile);
+    await tester.drag(find.text('Pommes'), const Offset(0, -100));
+    await tester.pump();
+    expect(tester.getTopLeft(tile).dy, lessThan(before.dy));
   });
 
   testWidgets('Zurück-Taste fragt bei gefülltem Warenkorb nach', (tester) async {

@@ -46,6 +46,10 @@ class ArticleGrid extends StatelessWidget {
       builder: (context, constraints) {
         final fit = GridFit.of(count, constraints.biggest, padding: _padding, spacing: _spacing);
         return GridView.builder(
+          // Passen alle Kacheln, steht das Raster fest (auf dem iPhone würde
+          // es sonst beim Wischen federn). Sonst scrollt es wie gewohnt.
+          primary: false,
+          physics: fit.scrolls ? null : const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(_padding),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: fit.columns,
@@ -85,7 +89,10 @@ class GridFit {
   final int columns;
   final double aspectRatio;
 
-  const GridFit(this.columns, this.aspectRatio);
+  /// Passen nicht alle Kacheln, muss das Raster scrollen.
+  final bool scrolls;
+
+  const GridFit(this.columns, this.aspectRatio, {this.scrolls = false});
 
   /// Unterhalb dieser Kantenlänge wird gescrollt statt weiter verkleinert.
   static const double minTileExtent = 90;
@@ -122,7 +129,7 @@ class GridFit {
 
     final columns = math.max(2, ((width + spacing) / (compactTileWidth + spacing)).floor());
     final tileWidth = (width - (columns - 1) * spacing) / columns;
-    return GridFit(columns, (tileWidth / compactTileHeight).clamp(0.6, 2.0));
+    return GridFit(columns, (tileWidth / compactTileHeight).clamp(0.6, 2.0), scrolls: true);
   }
 }
 
