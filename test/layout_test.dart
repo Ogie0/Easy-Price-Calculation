@@ -168,7 +168,7 @@ void main() {
   });
 
   testWidgets(
-    'iPhone: Passen alle Kacheln, federt das Raster beim Wischen nicht',
+    'Passen alle Kacheln, federt bzw. dehnt sich das Raster beim Wischen nicht',
     (tester) async {
       setScreen(tester, const Size(400, 800));
       await tester.pumpWidget(buildApp());
@@ -185,7 +185,7 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
     },
-    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+    variant: const TargetPlatformVariant({TargetPlatform.iOS, TargetPlatform.android}),
   );
 
   testWidgets('Wenig Platz: Raster scrollt', (tester) async {

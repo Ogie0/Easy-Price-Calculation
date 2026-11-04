@@ -3,17 +3,19 @@ Chromium zu PNG (längste Seite 384 px, transparent, auf den Inhalt
 zugeschnitten). Halbrealistischer Stil: Verläufe, Licht, Schatten und
 Oberflächenstruktur statt Konturen.
 
-Aufruf: python3 tool/article_art/draw.py <ausgabeordner> [chromium]
-Danach die PNGs nach assets/articles kopieren (pfand -> pfandrueckgabe,
-frei -> freier_betrag).
+Aufruf: python3 tool/article_art/draw.py <ausgabeordner> [chromium] [name ...]
+Ohne Namen werden alle Bilder gezeichnet. Danach die PNGs nach
+assets/articles kopieren (pfand -> pfandrueckgabe, frei -> freier_betrag).
 """
 import os
+import random
 import subprocess
 import sys
 
 OUT = sys.argv[1]
 CHROME = sys.argv[2] if len(sys.argv) > 2 else (
-    '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell')
+    '/opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell')
+ONLY = set(sys.argv[3:])
 
 # Gemeinsame Filter: weicher Schatten, Körnung (Brot, Fleisch, Panade),
 # unregelmäßiger Rand (Panade) und weiche Glanzlichter.
@@ -134,30 +136,88 @@ ART['bratwurst'] = svg('''
 <linearGradient id="senf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe45a"/><stop offset="1" stop-color="#e2b400"/></linearGradient>
 ''')
 
-ART['currywurst'] = svg('''
-<path d="M322 300 L372 140" stroke="#c9a061" stroke-width="16" stroke-linecap="round"/>
-<path d="M358 136 l-8 -32 M372 140 l0 -34 M386 144 l8 -32" stroke="#c9a061" stroke-width="9" stroke-linecap="round"/>
-<path d="M322 300 L372 140" stroke="#fff" stroke-width="4" opacity=".4" filter="url(#blur1)"/>
-<path d="M78 290 L434 290 L404 414 L108 414 Z" fill="url(#schale)"/>
-<path d="M78 290 L434 290 L430 304 L82 304 Z" fill="#e9e9e2"/>
-<path d="M92 334 L420 334" stroke="#c8352a" stroke-width="12"/>
+def _curry_slice(x, y):
+    """Wurstscheibe von schräg oben: Haut als Rand, gebräunte Schnittfläche."""
+    return (f'<ellipse cx="{x}" cy="{y + 10}" rx="38" ry="21" fill="#4e1d0b"/>'
+            f'<ellipse cx="{x}" cy="{y + 5}" rx="38" ry="21" fill="url(#cwSkin)"/>'
+            f'<ellipse cx="{x}" cy="{y}" rx="34" ry="18" fill="url(#cwCut)"/>')
+
+
+def _curry_rows():
+    """Scheiben in versetzten Reihen, passend in die Schale (hinten schmaler),
+    leicht unregelmäßig."""
+    rnd = random.Random(3)
+    rows = []
+    for i, y in enumerate((204, 238, 272)):
+        half = 142 + (y - 170) * 68 / 130 - 42    # halbe Innenbreite minus Rand
+        n = int(2 * half // 70) + 1
+        x0 = 256 - (n - 1) * 35 + (10 if i % 2 else -10)
+        rows.append([(round(x0 + k * 70 + rnd.uniform(-5, 5)), round(y + rnd.uniform(-3, 3))) for k in range(n)])
+    return rows
+
+
+def _curry_sauce_cap(i, x, y):
+    rnd = random.Random(100 + i)
+    dx, dy = rnd.uniform(-5, 5), rnd.uniform(-10, -5)
+    rx, ry = rnd.uniform(23, 31), rnd.uniform(10, 13)
+    return (f'<ellipse cx="{x + dx:.1f}" cy="{y + dy:.1f}" rx="{rx:.1f}" ry="{ry:.1f}" fill="url(#cwSauce)"/>'
+            f'<ellipse cx="{x + dx + 8:.1f}" cy="{y + dy + ry - 1:.1f}" rx="5" ry="4" fill="#b8221a"/>'
+            + shine(f'M{x + dx - rx * .55:.1f} {y + dy - ry * .35:.1f} Q{x + dx:.1f} {y + dy - ry * .8:.1f} '
+                    f'{x + dx + rx * .4:.1f} {y + dy - ry * .5:.1f}', 3, .55, 'blur1'))
+
+
+def _curry_powder():
+    rnd = random.Random(7)
+    dots = []
+    for _ in range(170):
+        x = rnd.uniform(124, 392)
+        y = rnd.uniform(194, 286)
+        r = rnd.uniform(1.4, 3.0)
+        c = rnd.choice(['#e3a126', '#d98418', '#c9661a', '#f0bd3c', '#b8561a'])
+        dots.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{c}"/>')
+    haze = ''.join(f'<ellipse cx="{rnd.uniform(140, 370):.0f}" cy="{rnd.uniform(200, 280):.0f}" rx="26" ry="10" '
+                   f'fill="#e39a2a" opacity=".22"/>' for _ in range(10))
+    return f'<g filter="url(#blur3)">{haze}</g><g opacity=".95">' + ''.join(dots) + '</g>'
+
+
+_CW_ROWS = _curry_rows()
+_CW_SLICES = [p for row in _CW_ROWS for p in row]
+
+ART['currywurst'] = svg(
+    # Schale: Rand und Innenraum (hinten).
+    '''
+<path d="M126 170 L386 170 Q400 170 406 182 L466 292 Q472 304 458 304 L54 304 Q40 304 46 292 L106 182 Q112 170 126 170 Z" fill="#d9d4c7"/>
+<path d="M130 178 L382 178 L446 296 L66 296 Z" fill="url(#cwInnen)"/>
+<path d="M142 190 C200 182 320 182 372 190 C400 200 428 250 436 292 L76 292 C84 250 112 200 142 190 Z" fill="url(#cwBett)"/>
+'''
+    # Wurstscheiben, von hinten nach vorn.
+    + ''.join(_curry_slice(x, y) for x, y in _CW_SLICES)
+    # Pommesgabel aus rotem Kunststoff, steckt in einer Scheibe.
+    + '''
 <g>
-''' + ''.join(f'''<ellipse cx="{x}" cy="{y}" rx="40" ry="25" fill="url(#skin)"/>
-<ellipse cx="{x}" cy="{y - 4}" rx="30" ry="16" fill="url(#cut)"/>''' for x, y in
-              [(150, 280), (226, 268), (302, 270), (370, 282), (190, 300), (268, 298), (340, 300)]) + '''
+  <path d="M330 234 L384 112" stroke="url(#cwGabel)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M384 112 L390 98" stroke="#b8160f" stroke-width="19" stroke-linecap="round"/>
+  <path d="M334 224 L380 118" stroke="#fff" stroke-width="3.5" opacity=".55" filter="url(#blur1)"/>
 </g>
-<path d="M116 262 Q150 236 190 256 Q230 232 268 252 Q310 232 350 254 Q386 242 400 272 Q382 302 340 294 Q300 314 262 296 Q222 314 188 294 Q148 306 116 262 Z" fill="url(#sauce)"/>
-''' + shine('M150 254 Q170 246 190 256', 6, .8, 'blur1') + shine('M262 248 Q282 240 300 246', 6, .8, 'blur1') + shine('M344 258 Q362 252 380 262', 5, .7, 'blur1') + '''
-<g fill="#e6a51d" filter="url(#blur1)">
-  <circle cx="160" cy="264" r="4"/><circle cx="200" cy="272" r="3.5"/><circle cx="244" cy="258" r="4"/><circle cx="282" cy="272" r="3"/>
-  <circle cx="318" cy="258" r="4"/><circle cx="356" cy="274" r="3"/><circle cx="226" cy="284" r="3"/><circle cx="300" cy="284" r="3.5"/>
-  <circle cx="176" cy="282" r="3"/><circle cx="336" cy="282" r="3"/><circle cx="264" cy="266" r="3"/>
-</g>
-''', defs='''
-<linearGradient id="schale" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d9d0"/></linearGradient>
-<radialGradient id="skin" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#b8602f"/><stop offset="1" stop-color="#6e2810"/></radialGradient>
-<radialGradient id="cut" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#e3a98a"/><stop offset="1" stop-color="#b8714f"/></radialGradient>
-<linearGradient id="sauce" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2452a"/><stop offset=".6" stop-color="#b8231a"/><stop offset="1" stop-color="#8a150f"/></linearGradient>
+'''
+    # Curryketchup: liegt in den Zwischenräumen und überzieht jede Scheibe
+    # zum Teil; vorn bleibt ein Rand der Schnittfläche frei.
+    + ''.join(_curry_sauce_cap(i, x, y) for i, (x, y) in enumerate(_CW_SLICES))
+    + _curry_powder()
+    # Vorderwand der Schale verdeckt den unteren Rand der vorderen Scheiben.
+    + '''
+<path d="M46 292 Q40 304 54 304 L458 304 Q472 304 466 292 L474 300 L444 372 Q440 380 430 380 L82 380 Q72 380 68 372 L38 300 Z" fill="url(#cwWand)"/>
+<path d="M40 300 L472 300" stroke="#f7f5ef" stroke-width="7" stroke-linecap="round"/>
+<path d="M54 326 L458 326" stroke="#c8352a" stroke-width="10"/>
+<path d="M60 340 L452 340" stroke="#c8352a" stroke-width="3"/>
+''' + shine('M64 314 L88 372', 12, .35, 'blur8'), shadow=(256, 394, 196, 14), defs='''
+<linearGradient id="cwInnen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bdb7a8"/><stop offset="1" stop-color="#e6e2d8"/></linearGradient>
+<linearGradient id="cwWand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#f1efe8"/><stop offset="1" stop-color="#d6d2c6"/></linearGradient>
+<radialGradient id="cwSkin" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="#a5532a"/><stop offset="1" stop-color="#5e230d"/></radialGradient>
+<radialGradient id="cwCut" cx=".45" cy=".4" r=".75"><stop offset="0" stop-color="#d4946a"/><stop offset=".7" stop-color="#b66e44"/><stop offset="1" stop-color="#8a4424"/></radialGradient>
+<linearGradient id="cwBett" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8e150d"/><stop offset="1" stop-color="#b01f15"/></linearGradient>
+<radialGradient id="cwSauce" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#d63c26"/><stop offset=".7" stop-color="#b8221a"/><stop offset="1" stop-color="#a01b12"/></radialGradient>
+<linearGradient id="cwGabel" x1="0" x2="1"><stop offset="0" stop-color="#f0463a"/><stop offset="1" stop-color="#a8140e"/></linearGradient>
 ''')
 
 ART['krakauer'] = svg('''
@@ -184,33 +244,46 @@ ART['krakauer'] = svg('''
 <radialGradient id="marbled" cx=".45" cy=".4" r=".75"><stop offset="0" stop-color="#e79a8c"/><stop offset=".7" stop-color="#c76a5c"/><stop offset="1" stop-color="#a24c3f"/></radialGradient>
 ''')
 
+STEAK_TOP = ('M92 246 C88 194 146 156 222 154 C290 152 322 172 360 172 C410 172 440 204 432 248 '
+             'C424 292 378 312 312 316 C252 320 220 334 166 328 C114 322 96 292 92 246 Z')
+# Fleisch: wie STEAK_TOP, nur die Oberkante tiefer, sodass oben ein Fettrand
+# bleibt.
+STEAK_MEAT = ('M96 250 C94 202 148 168 222 166 C289 164 321 183 359 183 C405 183 430 210 430 248 '
+              'C424 292 378 312 312 316 C252 320 220 334 166 328 C114 322 98 292 98 252 Z')
+
 ART['steak'] = svg('''
-<rect x="40" y="250" width="432" height="180" rx="24" fill="url(#brett)" filter="url(#grain)"/>
-<g stroke="#8a5a2c" stroke-width="3" opacity=".35" fill="none">
-  <path d="M60 290 Q256 280 452 296 M56 330 Q256 322 456 336 M60 372 Q256 362 452 378 M66 408 Q256 400 446 412"/>
+<path d="M78 252 L438 252 Q452 252 456 264 L494 378 Q498 392 484 392 L28 392 Q14 392 18 378 L58 264 Q62 252 78 252 Z" fill="url(#stBrett)" filter="url(#grain)"/>
+<path d="M18 380 L494 380 L494 396 Q494 414 476 414 L36 414 Q18 414 18 396 Z" fill="url(#stKante)"/>
+<g stroke="#8a5a2c" stroke-width="3" opacity=".3" fill="none">
+  <path d="M70 280 Q256 272 444 282 M56 318 Q256 308 458 320 M42 356 Q256 346 472 358"/>
 </g>
-<path d="M40 404 L472 404 L472 406 Q472 430 448 430 L64 430 Q40 430 40 406 Z" fill="#7a4a20" opacity=".6"/>
-<path d="M92 252 C90 170 214 132 310 152 C408 172 452 232 432 304 C412 380 304 404 216 388 C132 374 94 330 92 252 Z"
-  fill="#3a1a0e" opacity=".55" filter="url(#blur8)" transform="translate(6 14)"/>
-<path d="M92 252 C90 170 214 132 310 152 C408 172 452 232 432 304 C412 380 304 404 216 388 C132 374 94 330 92 252 Z" fill="url(#fett)"/>
-<g filter="url(#grain)">
-  <path d="M116 254 C116 188 216 164 300 178 C384 192 418 238 404 296 C388 352 302 374 224 362 C152 350 116 314 116 254 Z" fill="url(#fleisch)"/>
+<g transform="translate(-31 -18) scale(1.12)">
+<path d="''' + STEAK_TOP + '''" fill="#2a0f06" opacity=".55" filter="url(#blur8)" transform="translate(8 30)"/>
+<path d="''' + STEAK_TOP + '''" fill="url(#stSeite)" transform="translate(0 20)"/>
+<path d="''' + STEAK_TOP + '''" fill="url(#stFett)"/>
+<g filter="url(#grain)"><path d="''' + STEAK_MEAT + '''" fill="url(#stFleisch)"/></g>
+<clipPath id="stClip"><path d="''' + STEAK_TOP + '''"/></clipPath>
+<g clip-path="url(#stClip)" stroke="#220a03" stroke-width="12" stroke-linecap="round" opacity=".8" filter="url(#blur3)">
+  <path d="M110 218 L230 338 M170 182 L300 312 M240 172 L372 304 M316 176 L430 290"/>
+  <path d="M116 306 L230 192 M196 322 L326 192 M282 318 L404 196"/>
 </g>
-<g stroke="#2b0f05" stroke-width="16" stroke-linecap="round" opacity=".75" filter="url(#blur3)">
-  <path d="M154 222 L236 304 M200 190 L306 296 M262 180 L366 284 M324 190 L396 262 M144 296 L180 332"/>
+''' + shine('M150 218 C200 196 270 192 330 202', 9, .3, 'blur8') + shine('M356 216 C384 216 404 230 410 246', 6, .35, 'blur3') + shine('M124 192 C160 168 210 160 250 160', 4, .45, 'blur1') + '''
+<g fill="#160602" opacity=".7"><circle cx="168" cy="248" r="2.6"/><circle cx="214" cy="286" r="2.2"/><circle cx="262" cy="218" r="2.4"/>
+  <circle cx="318" cy="270" r="2.6"/><circle cx="366" cy="240" r="2.2"/><circle cx="140" cy="280" r="2"/><circle cx="290" cy="298" r="2"/></g>
+<g fill="#fbf7ee" opacity=".9"><rect x="196" y="234" width="4" height="4" transform="rotate(20 198 236)"/><rect x="250" y="266" width="4" height="4"/>
+  <rect x="338" y="220" width="4" height="4" transform="rotate(40 340 222)"/><rect x="154" y="300" width="3.5" height="3.5"/></g>
+<g>
+  <path d="M250 190 C288 164 334 160 372 174" fill="none" stroke="#4a5d2a" stroke-width="5" stroke-linecap="round"/>
+''' + ''.join(f'<ellipse cx="{252 + i * 11.5}" cy="{188 - i * 2.2 + (6 if i % 2 else -6)}" rx="11" ry="2.8" fill="#3f6b2e" '
+              f'transform="rotate({-40 if i % 2 else 30} {252 + i * 11.5} {188 - i * 2.2})"/>' for i in range(11)) + '''
 </g>
-''' + shine('M150 208 C200 182 280 176 340 190', 10, .35, 'blur8') + '''
-<path d="M282 190 C322 170 352 170 372 186" fill="none" stroke="#2f6b2a" stroke-width="5" stroke-linecap="round"/>
-<g fill="#4c8f3e">
-  <ellipse cx="300" cy="176" rx="14" ry="4.5" transform="rotate(-30 300 176)"/><ellipse cx="324" cy="170" rx="14" ry="4.5" transform="rotate(20 324 170)"/>
-  <ellipse cx="346" cy="174" rx="14" ry="4.5" transform="rotate(-25 346 174)"/><ellipse cx="312" cy="190" rx="14" ry="4.5" transform="rotate(30 312 190)"/>
-  <ellipse cx="336" cy="190" rx="14" ry="4.5" transform="rotate(-20 336 190)"/><ellipse cx="360" cy="186" rx="12" ry="4" transform="rotate(25 360 186)"/>
 </g>
-<g fill="#f3efe4"><circle cx="190" cy="330" r="3"/><circle cx="262" cy="346" r="2.5"/><circle cx="350" cy="320" r="3"/><circle cx="220" cy="240" r="2.5"/></g>
-''', shadow=(256, 440, 220, 14), defs='''
-<linearGradient id="brett" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8a868"/><stop offset="1" stop-color="#b07c40"/></linearGradient>
-<radialGradient id="fett" cx=".45" cy=".35" r=".8"><stop offset="0" stop-color="#f6e4c4"/><stop offset="1" stop-color="#cf9e64"/></radialGradient>
-<radialGradient id="fleisch" cx=".45" cy=".35" r=".8"><stop offset="0" stop-color="#a65a33"/><stop offset=".6" stop-color="#7c3b1d"/><stop offset="1" stop-color="#4f210d"/></radialGradient>
+''', shadow=(256, 418, 236, 14), defs='''
+<linearGradient id="stBrett" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cf9b5c"/><stop offset="1" stop-color="#e0b274"/></linearGradient>
+<linearGradient id="stKante" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a86f36"/><stop offset="1" stop-color="#7a4a20"/></linearGradient>
+<linearGradient id="stSeite" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#5a240e"/><stop offset="1" stop-color="#2e1006"/></linearGradient>
+<linearGradient id="stFett" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9c48a"/><stop offset=".18" stop-color="#c9924e"/><stop offset=".4" stop-color="#8a5220"/></linearGradient>
+<radialGradient id="stFleisch" cx=".45" cy=".4" r=".75"><stop offset="0" stop-color="#9c5226"/><stop offset=".55" stop-color="#7a3818"/><stop offset="1" stop-color="#4a1c0a"/></radialGradient>
 ''')
 
 FRY = '''<g transform="rotate({r} {cx} {cy})"><rect x="{x}" y="{y}" width="30" height="{h}" rx="5" fill="url(#fry)"/>
@@ -445,7 +518,9 @@ ART['frei'] = svg('''
 os.makedirs(OUT, exist_ok=True)
 tmp = os.path.join(OUT, '_svg')
 os.makedirs(tmp, exist_ok=True)
-for name, content in ART.items():
+NAMES = [n for n in ART if not ONLY or n in ONLY]
+for name in NAMES:
+    content = ART[name]
     src = os.path.join(tmp, name + '.svg')
     with open(src, 'w') as f:
         f.write(content)
@@ -457,7 +532,7 @@ for name, content in ART.items():
 
 from PIL import Image  # noqa: E402
 
-for name in ART:
+for name in NAMES:
     path = os.path.join(OUT, name + '.png')
     im = Image.open(path).convert('RGBA')
     l, t, r, b = im.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox()
@@ -468,4 +543,4 @@ for name in ART:
     canvas.paste(im.crop((l, t, r, b)), (m, m))
     scale = 384 / max(w, h)
     canvas.resize((round(w * scale), round(h * scale)), Image.LANCZOS).save(path, optimize=True)
-print('ok', len(ART))
+print('ok', len(NAMES))
