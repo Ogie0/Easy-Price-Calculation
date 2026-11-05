@@ -306,19 +306,71 @@ ART['pommes'] = svg(
 <linearGradient id="tuete" x1="0" x2="1"><stop offset="0" stop-color="#a81b1b"/><stop offset=".35" stop-color="#e2392f"/><stop offset=".7" stop-color="#d22a24"/><stop offset="1" stop-color="#8f1515"/></linearGradient>
 ''')
 
-NUGGET = '''<path d="{d}" fill="url(#nug)" filter="url(#crumb)"/>'''
+NUGGET_SHAPES = {
+    'rund': 'M-58 4 C-62 -30 -30 -44 2 -42 C34 -40 60 -28 60 2 C60 30 34 42 0 42 C-34 42 -56 32 -58 4 Z',
+    'glocke': 'M-50 -10 C-48 -40 -14 -46 10 -44 C40 -42 56 -22 58 8 C60 34 30 44 -4 42 C-40 40 -52 22 -50 -10 Z',
+    'lang': 'M-64 0 C-64 -26 -36 -38 -4 -36 C30 -34 64 -26 64 2 C64 28 36 38 0 38 C-36 38 -64 26 -64 0 Z',
+}
+
+
+def nugget(x, y, shape, rot=0, scale=1.0, seed=0):
+    """Paniertes Nugget mit Dicke: dunklere Unterseite, knusprige Oberseite,
+    Glanzpunkte und Krümel."""
+    d = NUGGET_SHAPES[shape]
+    rnd = random.Random(seed)
+    specks = ''.join(
+        f'<circle cx="{rnd.uniform(-44, 44):.0f}" cy="{rnd.uniform(-30, 26):.0f}" r="{rnd.uniform(1.4, 3.2):.1f}" '
+        f'fill="{rnd.choice(["#8a4c12", "#a65e16", "#7a3f0c"])}" opacity=".55" filter="url(#blur1)"/>' for _ in range(12))
+    return (f'<g transform="translate({x} {y}) rotate({rot}) scale({scale})">'
+            f'<ellipse cx="4" cy="40" rx="58" ry="12" fill="#3a2008" opacity=".45" filter="url(#blur3)"/>'
+            f'<path d="{d}" transform="translate(0 12)" fill="url(#nugSeite)" filter="url(#crumbFine)"/>'
+            f'<path d="{d}" fill="url(#nug)" filter="url(#crumbFine)"/>'
+            f'<path d="{d}" fill="none" stroke="#9a5512" stroke-width="10" opacity=".35" filter="url(#blur3)" '
+            f'transform="translate(3 6) scale(.94)"/>'
+            f'{specks}'
+            + shine('M-34 -22 C-20 -32 0 -34 16 -30', 6, .45, 'blur3')
+            + '<circle cx="-18" cy="-20" r="3" fill="#fff" opacity=".6" filter="url(#blur1)"/>'
+            + '</g>')
+
+
+def nugget_half(x, y, rot=0, scale=1.0):
+    """Durchgebrochenes Nugget: helles Hähnchenfleisch mit Panaderand."""
+    crust = 'M-60 6 C-62 -26 -30 -42 2 -40 C34 -38 60 -26 60 6 Z'
+    face = 'M-56 6 C-54 -6 -40 -12 -20 -10 C-4 -14 14 -12 26 -14 C42 -12 56 -6 56 6 C40 22 -40 22 -56 6 Z'
+    return (f'<g transform="translate({x} {y}) rotate({rot}) scale({scale})">'
+            f'<ellipse cx="0" cy="30" rx="60" ry="11" fill="#3a2008" opacity=".45" filter="url(#blur3)"/>'
+            f'<path d="{crust}" transform="translate(0 10)" fill="url(#nugSeite)" filter="url(#crumbFine)"/>'
+            f'<path d="{crust}" fill="url(#nug)" filter="url(#crumbFine)"/>'
+            + shine('M-34 -24 C-18 -32 2 -34 18 -30', 6, .45, 'blur3') +
+            f'<path d="{face}" transform="translate(0 8)" fill="#c27a26" filter="url(#crumbFine)"/>'
+            f'<path d="{face}" transform="translate(0 6) scale(.9)" fill="url(#huhn)"/>'
+            '<g stroke="#d8c3a0" stroke-width="2.2" stroke-linecap="round" opacity=".8" fill="none" filter="url(#blur1)">'
+            '<path d="M-36 6 Q-24 2 -12 8 M-6 4 Q8 0 20 6 M26 8 Q36 4 44 8 M-24 14 Q-8 10 6 16 M14 14 Q26 10 36 14"/></g>'
+            '</g>')
+
+
 ART['nuggets'] = svg('''
-<path d="M300 328 Q360 318 420 328 L408 404 Q360 422 312 404 Z" fill="url(#napf)"/>
-<ellipse cx="360" cy="328" rx="60" ry="17" fill="#f2f2ec"/>
-<ellipse cx="360" cy="330" rx="52" ry="12" fill="url(#ketchup)"/>
-''' + shine('M330 326 Q350 322 366 324', 5, .8, 'blur1') + ''.join(NUGGET.format(d=d) for d in [
-    'M96 300 C90 250 150 230 186 250 C222 268 222 320 190 340 C150 360 100 340 96 300 Z',
-    'M190 230 C200 180 270 170 296 200 C322 232 300 276 262 282 C224 288 182 268 190 230 Z',
-    'M160 380 C150 336 210 320 246 334 C286 350 288 396 252 412 C214 428 168 416 160 380 Z',
-    'M230 330 C236 296 290 290 312 312 C334 336 316 372 284 376 C252 380 226 360 230 330 Z']) + '''
-''' + shine('M120 270 C140 256 160 254 176 262', 7, .45) + shine('M214 208 C232 192 256 190 272 198', 7, .45)
-    + shine('M182 352 C200 340 220 340 236 346', 7, .4) + shine('M250 314 C264 304 282 304 296 310', 6, .4), defs='''
-<radialGradient id="nug" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f4c56d"/><stop offset=".6" stop-color="#d9932f"/><stop offset="1" stop-color="#a8641a"/></radialGradient>
+<path d="M346 262 L362 350 Q398 366 434 350 L450 262 Z" fill="url(#napf)"/>
+<ellipse cx="398" cy="262" rx="54" ry="15" fill="#f4f4ee"/>
+<ellipse cx="398" cy="264" rx="46" ry="11" fill="url(#ketchup)"/>
+''' + shine('M368 260 Q388 255 408 257', 5, .8, 'blur1')
+    + nugget(178, 250, 'rund', -8, 1.0, 1)
+    + nugget(292, 244, 'lang', 6, .95, 2)
+    + nugget(110, 322, 'glocke', 12, 1.0, 3)
+    + nugget(236, 214, 'glocke', -14, .95, 5)
+    + nugget(232, 328, 'rund', -4, 1.05, 4)
+    + nugget_half(338, 372, -6, 1.15), shadow=(256, 418, 214, 16), defs='''
+<filter id="crumbFine" x="-15%" y="-15%" width="130%" height="130%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="3" result="t"/>
+  <feDisplacementMap in="SourceGraphic" in2="t" scale="7" xChannelSelector="R" yChannelSelector="G" result="r"/>
+  <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="6" result="n"/>
+  <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.2  0 0 0 0 0.02  1.5 0 0 0 -0.62" result="d"/>
+  <feComposite in="d" in2="r" operator="in" result="d2"/>
+  <feMerge><feMergeNode in="r"/><feMergeNode in="d2"/></feMerge>
+</filter>
+<radialGradient id="nug" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#f3c463"/><stop offset=".45" stop-color="#dc9632"/><stop offset=".85" stop-color="#b8701e"/><stop offset="1" stop-color="#965414"/></radialGradient>
+<linearGradient id="nugSeite" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8621a"/><stop offset="1" stop-color="#6a370b"/></linearGradient>
+<radialGradient id="huhn" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fbf5ea"/><stop offset=".7" stop-color="#efe2cb"/><stop offset="1" stop-color="#dcc6a2"/></radialGradient>
 <linearGradient id="napf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfcfc6"/><stop offset=".4" stop-color="#ffffff"/><stop offset="1" stop-color="#bdbdb4"/></linearGradient>
 <radialGradient id="ketchup" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#e5412d"/><stop offset="1" stop-color="#8f140c"/></radialGradient>
 ''')
